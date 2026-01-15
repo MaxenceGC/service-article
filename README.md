@@ -1,4 +1,50 @@
-# service-article
+﻿
+
+## Endpoints
+
+Toutes les routes consomment et produisent du JSON (`Content-Type: application/json`).
+
+### Articles
+
+- `POST /articles` : creer un article.
+- `GET /articles/{id}` : recuperer un article par id.
+- `PUT /articles/{id}` : mettre a jour un article.
+- `GET /articles?categorieId={uuid}&vendeurId={uuid}&statut={statut}` : lister les articles, avec filtres optionnels.
+- `PATCH /articles/{id}/prix` : modifier le prix d'un article.
+- `PATCH /articles/{id}/valider` : valider un article.
+- `PATCH /articles/{id}/refuser` : refuser un article avec un motif.
+- `DELETE /articles/{id}` : supprimer un article.
+
+### Photos d'articles
+
+- `POST /articles/{articleId}/photos` : ajouter une photo a un article.
+- `GET /articles/{articleId}/photos` : lister les photos d'un article.
+- `DELETE /articles/{articleId}/photos/{photoId}` : supprimer une photo d'article.
+- `PATCH /articles/{articleId}/photos/{photoId}/ordre?ordre={int}` : modifier l'ordre d'affichage.
+
+### Signalements d'articles
+
+- `POST /articles/{articleId}/signalements` : signaler un article.
+
+### Boutiques
+
+- `POST /boutiques` : creer une boutique.
+- `GET /boutiques?vendeurId={uuid}` : lister les boutiques, filtre optionnel par vendeur.
+- `GET /boutiques/{id}` : recuperer une boutique.
+- `PUT /boutiques/{id}` : mettre a jour une boutique.
+- `DELETE /boutiques/{id}` : supprimer une boutique.
+
+### Categories
+
+- `POST /categories` : creer une categorie.
+- `GET /categories?parentId={uuid}` : lister les categories, filtre optionnel par parent.
+- `GET /categories/{id}` : recuperer une categorie.
+- `GET /categories/{id}/children` : lister les enfants directs d'une categorie.
+- `GET /categories/tree` : obtenir l'arbre complet des categories.
+- `PUT /categories/{id}` : mettre a jour une categorie (parent_id ne peut pas etre egal a l'id).
+- `DELETE /categories/{id}` : supprimer une categorie.
+
+## Running the application in dev mode service-article
 
 This project uses Quarkus, the Supersonic Subatomic Java Framework.
 
