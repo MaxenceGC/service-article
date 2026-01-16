@@ -2,7 +2,6 @@ package com.acme.controller.mapper;
 
 import com.acme.controller.dto.response.ArticleResponse;
 import com.acme.controller.dto.response.BoutiqueResponse;
-import com.acme.controller.dto.response.CategorieResponse;
 import com.acme.entity.article.Article;
 
 public class ArticleMapper {
@@ -27,12 +26,11 @@ public class ArticleMapper {
         }
 
         if (a.categorie != null) {
-            CategorieResponse c = new CategorieResponse();
-            c.id_categorie = a.categorie.id_categorie;
-            c.libelle = a.categorie.libelle;
-            r.categorie = c;
+            r.categorie = CategorieMapper.toResponse(a.categorie);
         }
 
         return r;
     }
 }
+
+

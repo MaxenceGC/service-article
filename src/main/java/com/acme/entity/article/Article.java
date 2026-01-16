@@ -3,6 +3,7 @@ package com.acme.entity.article;
 import com.acme.entity.article.enums.ArticleStatut;
 import com.acme.entity.boutique.Boutique;
 import com.acme.entity.categorie.Categorie;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -24,11 +25,13 @@ public class Article {
     @Column(name = "vendeur_id", nullable = false)
     public UUID vendeur_id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "boutique_id")
     public Boutique boutique;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "categorie_id", nullable = false)
     public Categorie categorie;
 

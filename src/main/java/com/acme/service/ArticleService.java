@@ -119,13 +119,14 @@ public class ArticleService {
             return;
         }
 
-        PrixHistorique histo = new PrixHistorique();
-        histo.article = article;
-        histo.ancien_prix = article.prix_actuel;
-        histo.nouveau_prix = nouveauPrix;
-        histo.origine_changement = PrixOrigineType.vendeur;
-
-        em.persist(histo);
+        em.createNativeQuery(
+                "insert into prix_historique (ancien_prix, article_id, date_changement, nouveau_prix, origine_changement) " +
+                "values (?, ?, now(), ?, cast(? as prix_origine_type))")
+                .setParameter(1, article.prix_actuel)
+                .setParameter(2, article.id_article)
+                .setParameter(3, nouveauPrix)
+                .setParameter(4, PrixOrigineType.vendeur.name())
+                .executeUpdate();
 
         article.prix_actuel = nouveauPrix;
         article.date_mise_a_jour = OffsetDateTime.now();

@@ -2,6 +2,7 @@ package com.acme.entity.article;
 
 import com.acme.entity.article.enums.prix.PrixOrigineType;
 import jakarta.persistence.*;
+import org.hibernate.annotations.Type;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -35,4 +36,3 @@ public class PrixHistorique {
             columnDefinition = "prix_origine_type")
     public PrixOrigineType origine_changement;
 }
-
