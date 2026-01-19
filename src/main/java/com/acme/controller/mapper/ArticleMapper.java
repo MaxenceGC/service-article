@@ -1,7 +1,6 @@
 package com.acme.controller.mapper;
 
 import com.acme.controller.dto.response.ArticleResponse;
-import com.acme.controller.dto.response.BoutiqueResponse;
 import com.acme.entity.article.Article;
 
 public class ArticleMapper {
@@ -19,10 +18,7 @@ public class ArticleMapper {
         r.date_mise_a_jour = a.date_mise_a_jour;
 
         if (a.boutique != null) {
-            BoutiqueResponse b = new BoutiqueResponse();
-            b.id_boutique = a.boutique.id_boutique;
-            b.nom = a.boutique.nom;
-            r.boutique = b;
+            r.boutique = BoutiqueMapper.toResponse(a.boutique);
         }
 
         if (a.categorie != null) {
@@ -32,5 +28,7 @@ public class ArticleMapper {
         return r;
     }
 }
+
+
 
 

@@ -1,6 +1,8 @@
 package com.acme.controller;
 
 import com.acme.controller.dto.request.BoutiqueRequest;
+import com.acme.controller.dto.response.BoutiqueResponse;
+import com.acme.controller.mapper.BoutiqueMapper;
 import com.acme.entity.boutique.Boutique;
 import com.acme.service.BoutiqueService;
 import jakarta.inject.Inject;
@@ -24,19 +26,20 @@ public class BoutiqueController {
     @POST
     public Response create(@Valid BoutiqueRequest req) {
         Boutique b = boutiqueService.create(req);
-        return Response.status(Response.Status.CREATED).entity(b).build();
+        return Response.status(Response.Status.CREATED).entity(BoutiqueMapper.toResponse(b)).build();
     }
 
     @GET
     public Response list(@QueryParam("vendeurId") UUID vendeurId) {
         List<Boutique> list = boutiqueService.listAll();
         if (vendeurId != null) {
-            List<Boutique> filtered = list.stream()
+            List<BoutiqueResponse> filtered = list.stream()
                     .filter(b -> b.vendeur_id != null && vendeurId.equals(b.vendeur_id))
+                    .map(BoutiqueMapper::toResponse)
                     .collect(Collectors.toList());
             return Response.ok(filtered).build();
         }
-        return Response.ok(list).build();
+        return Response.ok(list.stream().map(BoutiqueMapper::toResponse).collect(Collectors.toList())).build();
     }
 
     @GET
@@ -44,7 +47,7 @@ public class BoutiqueController {
     public Response get(@PathParam("id") UUID id) {
         Boutique b = boutiqueService.findById(id);
         if (b == null) return Response.status(Response.Status.NOT_FOUND).build();
-        return Response.ok(b).build();
+        return Response.ok(BoutiqueMapper.toResponse(b)).build();
     }
 
     @PUT
@@ -52,7 +55,7 @@ public class BoutiqueController {
     public Response update(@PathParam("id") UUID id, BoutiqueRequest req) {
         Boutique b = boutiqueService.update(id, req);
         if (b == null) return Response.status(Response.Status.NOT_FOUND).build();
-        return Response.ok(b).build();
+        return Response.ok(BoutiqueMapper.toResponse(b)).build();
     }
 
     @DELETE

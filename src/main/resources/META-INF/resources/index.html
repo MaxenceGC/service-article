@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Service Article – UI de test</title>
+
+    <style>
+        :root{
+            --bg:#f4f6f9; --card:#fff; --text:#1b1f24; --muted:#6b7280; --border:#e5e7eb;
+            --primary:#1e88e5; --success:#2e7d32; --warn:#f57c00; --danger:#c62828;
+            --shadow: 0 1px 8px rgba(0,0,0,.06);
+        }
+        *{box-sizing:border-box}
+        body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+        header{
+            height:56px; display:flex; align-items:center; justify-content:space-between;
+            padding:0 18px; background:#0f172a; color:#fff;
+        }
+        header .right{display:flex; gap:10px; align-items:center}
+        header input{
+            width:320px; max-width:55vw;
+            padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.2);
+            background:rgba(255,255,255,.08); color:#fff;
+        }
+        header input::placeholder{color:rgba(255,255,255,.7)}
+        header button{
+            padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.2);
+            background:rgba(255,255,255,.08); color:#fff; cursor:pointer;
+        }
+        header button:hover{background:rgba(255,255,255,.14)}
+        .app{display:flex;height:calc(100vh - 56px)}
+        aside{
+            width:280px; background:#fff; border-right:1px solid var(--border); padding:14px;
+        }
+        .navbtn{
+            width:100%; text-align:left; padding:10px 12px; margin-bottom:8px;
+            border:1px solid var(--border); border-radius:10px; background:#fff; cursor:pointer;
+        }
+        .navbtn.active{border-color:rgba(30,136,229,.35); box-shadow:0 0 0 3px rgba(30,136,229,.10)}
+        .navbtn:hover{background:#fafafa}
+        aside .group{margin-top:14px; padding-top:12px; border-top:1px solid var(--border)}
+        aside small{color:var(--muted)}
+        main{flex:1; padding:18px; overflow:auto}
+        .topbar{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px}
+        h1{font-size:18px; margin:0}
+        .toolbar{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+        .toolbar input,.toolbar select{
+            padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:#fff;
+        }
+        .btn{
+            padding:9px 12px; border-radius:10px; border:1px solid var(--border);
+            background:#fff; cursor:pointer;
+        }
+        .btn.primary{background:var(--primary); color:#fff; border-color:transparent}
+        .btn.success{background:var(--success); color:#fff; border-color:transparent}
+        .btn.warn{background:var(--warn); color:#fff; border-color:transparent}
+        .btn.danger{background:var(--danger); color:#fff; border-color:transparent}
+        .btn:hover{filter:brightness(.98)}
+        .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:14px}
+        .card{
+            background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px;
+            box-shadow:var(--shadow);
+        }
+        .card h3{margin:0 0 6px 0; font-size:16px}
+        .meta{display:flex; gap:8px; flex-wrap:wrap; color:var(--muted); font-size:12px}
+        .pill{
+            font-size:12px; padding:2px 8px; border-radius:999px; border:1px solid var(--border); background:#fafafa;
+        }
+        .row{display:flex; gap:10px; flex-wrap:wrap}
+        .row > *{flex:1; min-width:160px}
+        .field label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
+        .field input,.field textarea,.field select{
+            width:100%; padding:10px; border:1px solid var(--border); border-radius:10px; background:#fff;
+        }
+        .field textarea{min-height:90px; resize:vertical}
+        .hr{height:1px; background:var(--border); margin:12px 0}
+        .kv{display:grid; grid-template-columns:160px 1fr; gap:8px; font-size:14px}
+        .kv .k{color:var(--muted)}
+        .empty{
+            padding:18px; border:1px dashed var(--border); border-radius:14px; background:#fff;
+            color:var(--muted);
+        }
+
+        /* Modal */
+        .modal{position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; padding:18px}
+        .modal.open{display:flex}
+        .modal .box{width:min(720px, 100%); background:#fff; border-radius:16px; border:1px solid var(--border); box-shadow:var(--shadow); padding:16px}
+        .modal .box h2{margin:0 0 10px 0; font-size:16px}
+        .modal .box .actions{display:flex; gap:8px; justify-content:flex-end; margin-top:12px}
+
+        /* Toast */
+        #toastWrap{position:fixed; right:14px; bottom:14px; display:flex; flex-direction:column; gap:10px; z-index:9999}
+        .toast{
+            width:340px; max-width:80vw;
+            background:#fff; border:1px solid var(--border); border-radius:14px; padding:12px;
+            box-shadow:var(--shadow); display:flex; gap:10px; align-items:flex-start;
+        }
+        .toast .t{font-weight:600; margin-bottom:2px}
+        .toast .m{color:var(--muted); font-size:13px}
+        .toast.ok{border-left:5px solid var(--success)}
+        .toast.err{border-left:5px solid var(--danger)}
+        .toast.warn{border-left:5px solid var(--warn)}
+    </style>
+</head>
+
+<body>
+<header>
+    <div style="display:flex;gap:10px;align-items:center">
+        <strong>🧪 Service Article</strong>
+        <span style="opacity:.7;font-size:12px">UI de test (site-like)</span>
+    </div>
+    <div class="right">
+        <input id="apiBase" placeholder="Base API (ex: http://localhost:8080)" />
+        <button onclick="reloadCurrent()">↻ Recharger</button>
+    </div>
+</header>
+
+<div class="app">
+    <aside>
+        <button class="navbtn active" id="navArticles" onclick="go('articles')">📦 Articles</button>
+        <button class="navbtn" id="navBoutiques" onclick="go('boutiques')">🏬 Boutiques</button>
+        <button class="navbtn" id="navCategories" onclick="go('categories')">🗂️ Catégories</button>
+
+        <div class="group">
+            <small>Astuce</small>
+            <div style="margin-top:8px;color:var(--muted);font-size:13px;line-height:1.3">
+                La page affiche des objets (pas du JSON).<br>
+                En cas d’erreur API, tu verras un message propre + le code HTTP.
+            </div>
+        </div>
+    </aside>
+
+    <main>
+        <div class="topbar">
+            <h1 id="viewTitle">Articles</h1>
+            <div class="toolbar" id="toolbar"></div>
+        </div>
+
+        <div id="view"></div>
+    </main>
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+    <div class="box">
+        <h2 id="modalTitle">Modal</h2>
+        <div id="modalBody"></div>
+        <div class="actions">
+            <button class="btn" onclick="closeModal()">Annuler</button>
+            <button class="btn primary" id="modalOkBtn" onclick="modalOk()">OK</button>
+        </div>
+    </div>
+</div>
+
+<div id="toastWrap"></div>
+
+<script>
+    /* ======================
+       Util API + UI helpers
+    ====================== */
+    let currentView = 'articles';
+    let currentDetail = null; // {type,id}
+    let _modalOk = null;
+    const API_BASE_STORAGE_KEY = 'serviceArticle.apiBase';
+    const DEFAULT_API_BASE = (window.location.origin && window.location.origin !== 'null')
+        ? window.location.origin
+        : 'http://localhost:8080';
+    const apiBaseInput = document.getElementById('apiBase');
+    const storage = (()=>{ try{ return window.localStorage; }catch{ return null; }})();
+    initApiBase();
+
+    function normalizeBase(raw){
+        const trimmed = (raw || '').trim();
+        if(!trimmed) return DEFAULT_API_BASE;
+        const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
+        try{
+            const url = new URL(withScheme);
+            return url.origin.replace(/\/+$/,'');
+        }catch{
+            return DEFAULT_API_BASE;
+        }
+    }
+    function initApiBase(){
+        if(!apiBaseInput) return;
+        const stored = storage?.getItem(API_BASE_STORAGE_KEY);
+        const initial = stored || normalizeBase(apiBaseInput.value) || DEFAULT_API_BASE;
+        apiBaseInput.value = initial;
+        if(!stored) storage?.setItem(API_BASE_STORAGE_KEY, initial);
+        apiBaseInput.addEventListener('change', ()=>{
+            const normalized = normalizeBase(apiBaseInput.value);
+            apiBaseInput.value = normalized;
+            storage?.setItem(API_BASE_STORAGE_KEY, normalized);
+        });
+    }
+    function base(){
+        return normalizeBase(apiBaseInput?.value || DEFAULT_API_BASE);
+    }
+    function pickId(o){
+        if(!o) return null;
+        return o.id_article || o.id || o.uuid || o.articleId || o.id_boutique || o.id_categorie;
+    }
+    function toast(type, title, msg){
+        const wrap = document.getElementById('toastWrap');
+        const el = document.createElement('div');
+        el.className = 'toast ' + (type || '');
+        el.innerHTML = `<div>
+    <div class="t">${escapeHtml(title||'Info')}</div>
+    <div class="m">${escapeHtml(msg||'')}</div>
+  </div>`;
+        wrap.appendChild(el);
+        setTimeout(()=>{ el.remove(); }, 3500);
+    }
+    function escapeHtml(s){
+        return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    async function api(path, opts={}){
+        const url = new URL(path, base() + '/').toString();
+        const headers = { ...(opts.headers||{}) };
+        if(opts.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+        try{
+            const r = await fetch(url, { ...opts, headers, mode:'cors', cache:'no-store' });
+            const ct = r.headers.get('content-type') || '';
+            let body = null;
+            if(ct.includes('application/json')){
+                try{ body = await r.json(); }catch{ body = null; }
+            } else if(r.status !== 204){
+                body = await r.text();
+            }
+            if(!r.ok){
+                const msg = (typeof body === 'string' && body)
+                    ? body
+                    : (body && body.message) ? body.message : 'Erreur API';
+                throw { status:r.status, body, message: msg, path: url };
+            }
+            return body;
+        }catch(err){
+            if(err?.status) throw err;
+            throw { message: `Ressource injoignable (${url})`, cause: err };
+        }
+    }
+
+    function setNavActive(id){
+        ['navArticles','navBoutiques','navCategories'].forEach(x=>document.getElementById(x).classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+    function setToolbar(html){ document.getElementById('toolbar').innerHTML = html || ''; }
+    function setViewTitle(t){ document.getElementById('viewTitle').textContent = t; }
+    function setView(html){ document.getElementById('view').innerHTML = html || ''; }
+
+    function openModal(title, bodyHtml, okLabel, okFn){
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalBody').innerHTML = bodyHtml;
+        document.getElementById('modalOkBtn').textContent = okLabel || 'OK';
+        _modalOk = okFn;
+        document.getElementById('modal').classList.add('open');
+    }
+    function closeModal(){ document.getElementById('modal').classList.remove('open'); _modalOk=null; }
+    function modalOk(){ if(_modalOk) _modalOk(); }
+
+    /* ======================
+       Navigation
+    ====================== */
+    function go(view){
+        currentView = view;
+        currentDetail = null;
+        if(view==='articles'){ setNavActive('navArticles'); renderArticles(); }
+        if(view==='boutiques'){ setNavActive('navBoutiques'); renderBoutiques(); }
+        if(view==='categories'){ setNavActive('navCategories'); renderCategories(); }
+    }
+    function reloadCurrent(){
+        if(currentView==='articles'){
+            if(currentDetail?.type==='article') return showArticle(currentDetail.id);
+            return renderArticles();
+        }
+        if(currentView==='boutiques'){
+            if(currentDetail?.type==='boutique') return showBoutique(currentDetail.id);
+            return renderBoutiques();
+        }
+        if(currentView==='categories'){
+            if(currentDetail?.type==='categorie') return showCategorie(currentDetail.id);
+            return renderCategories();
+        }
+    }
+
+    /* ======================
+       ARTICLES
+       Endpoints:
+       POST /articles
+       GET /articles?categorieId&vendeurId&statut
+       GET /articles/{id}
+       PUT /articles/{id}
+       PATCH /articles/{id}/prix
+       PATCH /articles/{id}/valider
+       PATCH /articles/{id}/refuser
+       DELETE /articles/{id}
+       Photos:
+       POST /articles/{id}/photos
+       GET /articles/{id}/photos
+       DELETE /articles/{id}/photos/{photoId}
+       PATCH /articles/{id}/photos/{photoId}/ordre?ordre=N
+       Signalements:
+       POST /articles/{id}/signalements
+    ====================== */
+    async function renderArticles(){
+        setViewTitle('Articles');
+        setToolbar(`
+    <input id="fVendeur" placeholder="vendeurId (UUID)" />
+    <input id="fCategorie" placeholder="categorieId (UUID)" />
+    <select id="fStatut">
+      <option value="">statut (tous)</option>
+      <option value="en_attente">en_attente</option>
+      <option value="valide">valide</option>
+      <option value="refuse">refuse</option>
+    </select>
+    <button class="btn" onclick="loadArticles()">Filtrer</button>
+    <button class="btn primary" onclick="openCreateArticle()">+ Créer</button>
+  `);
+        setView(`<div class="empty">Charge la liste…</div>`);
+        await loadArticles();
+    }
+
+    async function loadArticles(){
+        try{
+            const v = document.getElementById('fVendeur')?.value?.trim();
+            const c = document.getElementById('fCategorie')?.value?.trim();
+            const s = document.getElementById('fStatut')?.value?.trim();
+            const qs = new URLSearchParams();
+            if(c) qs.set('categorieId', c);
+            if(v) qs.set('vendeurId', v);
+            if(s) qs.set('statut', s);
+            const list = await api('/articles' + (qs.toString()?('?'+qs.toString()):''));
+            if(!Array.isArray(list) || list.length===0){
+                setView(`<div class="empty">Aucun article.</div>`);
+                return;
+            }
+            const cards = list.map(a=>{
+                const id = pickId(a);
+                return `
+      <div class="card">
+        <h3>${escapeHtml(a.titre || 'Sans titre')}</h3>
+        <div class="meta">
+          <span class="pill">${escapeHtml(a.statut || 'statut?')}</span>
+          <span class="pill">Prix: ${escapeHtml(a.prix_actuel ?? a.prixActuel ?? '—')} €</span>
+        </div>
+        <div class="hr"></div>
+        <div class="row">
+          <button class="btn primary" onclick="showArticle('${id}')">Détail</button>
+          <button class="btn success" onclick="validerArticle('${id}')">Valider</button>
+          <button class="btn danger" onclick="deleteArticle('${id}')">Supprimer</button>
+        </div>
+      </div>`;
+            }).join('');
+            setView(`<div class="grid">${cards}</div>`);
+        }catch(e){
+            toast('err','Articles', formatErr(e));
+            setView(`<div class="empty">Impossible de charger les articles.</div>`);
+        }
+    }
+
+    async function showArticle(id){
+        try{
+            currentDetail = { type:'article', id };
+            const a = await api('/articles/' + id);
+            const aid = pickId(a) || id;
+
+            setViewTitle('Détail article');
+            setToolbar(`
+      <button class="btn" onclick="renderArticles()">← Retour</button>
+      <button class="btn" onclick="openEditArticle('${aid}')">Modifier</button>
+      <button class="btn warn" onclick="openChangePrix('${aid}')">Changer prix</button>
+      <button class="btn success" onclick="validerArticle('${aid}')">Valider</button>
+      <button class="btn warn" onclick="openRefuse('${aid}')">Refuser</button>
+      <button class="btn danger" onclick="deleteArticle('${aid}')">Supprimer</button>
+    `);
+
+            setView(`
+      <div class="card">
+        <h3>${escapeHtml(a.titre || 'Sans titre')}</h3>
+        <div class="meta">
+          <span class="pill">ID: ${escapeHtml(aid)}</span>
+          <span class="pill">${escapeHtml(a.statut || 'statut?')}</span>
+          <span class="pill">Prix: ${escapeHtml(a.prix_actuel ?? a.prixActuel ?? '—')} €</span>
+        </div>
+        <div class="hr"></div>
+        <div class="kv">
+          <div class="k">Vendeur</div><div>${escapeHtml(a.vendeur_id || a.vendeurId || '—')}</div>
+          <div class="k">Catégorie</div><div>${escapeHtml(a.categorie_id || a.categorieId || '—')}</div>
+          <div class="k">Boutique</div><div>${escapeHtml(a.boutiqueId || (a.boutique && (a.boutique.id_boutique || a.boutique.id)) || '—')}</div>
+        </div>
+        <div class="hr"></div>
+        <div style="color:var(--muted);font-size:13px;margin-bottom:6px">Description</div>
+        <div>${escapeHtml(a.description || '—')}</div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <h3>Photos</h3>
+        <div class="row">
+          <button class="btn primary" onclick="openAddPhoto('${aid}')">+ Ajouter photo</button>
+          <button class="btn" onclick="loadPhotos('${aid}')">Rafraîchir</button>
+        </div>
+        <div class="hr"></div>
+        <div id="photosBox" class="empty">Charge les photos…</div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <h3>Signalement</h3>
+        <div class="row">
+          <div class="field">
+            <label>signalantId (optionnel)</label>
+            <input id="sigSignalant" placeholder="UUID (sinon généré par le backend)" />
+          </div>
+          <div class="field">
+            <label>niveauGravite</label>
+            <select id="sigNiveau">
+              <option value="faible">faible</option>
+              <option value="moyen">moyen</option>
+              <option value="eleve">eleve</option>
+              <option value="critique" selected>critique</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>raison</label>
+          <input id="sigRaison" value="Prix suspect" />
+        </div>
+        <button class="btn warn" onclick="signaler('${aid}')">Signaler</button>
+      </div>
+    `);
+
+            await loadPhotos(aid);
+        }catch(e){
+            toast('err','Détail article', formatErr(e));
+            setView(`<div class="empty">Impossible de charger l’article.</div>`);
+        }
+    }
+
+    function openCreateArticle(){
+        openModal('Créer un article', `
+    <div class="row">
+      <div class="field">
+        <label>vendeur_id</label>
+        <input id="a_vendeur" placeholder="UUID vendeur" />
+      </div>
+      <div class="field">
+        <label>categorie_id</label>
+        <input id="a_categorie" placeholder="UUID catégorie" />
+      </div>
+    </div>
+    <div class="field">
+      <label>boutiqueId (optionnel)</label>
+      <input id="a_boutique" placeholder="UUID boutique ou vide" />
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>titre</label>
+        <input id="a_titre" placeholder="Titre" />
+      </div>
+      <div class="field">
+        <label>prix_actuel</label>
+        <input id="a_prix" placeholder="99.99" />
+      </div>
+    </div>
+    <div class="field">
+      <label>description</label>
+      <textarea id="a_desc" placeholder="Description..."></textarea>
+    </div>
+  `,'Créer', async ()=>{
+            try{
+                const payload = {
+                    vendeur_id: document.getElementById('a_vendeur').value.trim(),
+                    categorie_id: document.getElementById('a_categorie').value.trim(),
+                    boutiqueId: document.getElementById('a_boutique').value.trim() || null,
+                    titre: document.getElementById('a_titre').value.trim(),
+                    description: document.getElementById('a_desc').value.trim(),
+                    prix_actuel: Number(document.getElementById('a_prix').value)
+                };
+                const created = await api('/articles',{method:'POST', body: JSON.stringify(payload)});
+                closeModal();
+                toast('ok','Article','Créé');
+                const id = pickId(created);
+                if(id) showArticle(id); else renderArticles();
+            }catch(e){
+                toast('err','Création article', formatErr(e));
+            }
+        });
+    }
+
+    async function openEditArticle(id){
+        try{
+            const article = await api('/articles/'+id);
+            const titreValue = escapeHtml(article.titre || '');
+            const descValue = escapeHtml(article.description || '');
+            const categorieValue = escapeHtml(
+                (article.categorie && (article.categorie.id_categorie || article.categorie.id)) || ''
+            );
+
+            openModal('Modifier l’article', `
+    <div class="field">
+      <label>titre</label>
+      <input id="u_titre" placeholder="Nouveau titre" value="${titreValue}" />
+    </div>
+    <div class="field">
+      <label>description</label>
+      <textarea id="u_desc" placeholder="Nouvelle description">${descValue}</textarea>
+    </div>
+    <div class="field">
+      <label>categorieId</label>
+      <input id="u_cat" placeholder="UUID catégorie" value="${categorieValue}" />
+    </div>
+  `,'Enregistrer', async ()=>{
+                try{
+                    const titre = document.getElementById('u_titre').value.trim();
+                    const description = document.getElementById('u_desc').value.trim();
+                    const categorieId = document.getElementById('u_cat').value.trim();
+                    if(!titre || !categorieId){
+                        toast('warn','Modification article','titre et categorieId sont requis');
+                        return;
+                    }
+                    const payload = {
+                        id_article: id,
+                        titre,
+                        description,
+                        categorieId
+                    };
+                    await api('/articles/'+id,{method:'PUT', body: JSON.stringify(payload)});
+                    closeModal();
+                    toast('ok','Article','Modifié');
+                    showArticle(id);
+                }catch(e){
+                    toast('err','Modification article', formatErr(e));
+                }
+            });
+        }catch(e){
+            toast('err','Chargement article', formatErr(e));
+        }
+    }
+
+    function openChangePrix(id){
+        openModal('Changer le prix', `
+    <div class="field">
+      <label>nouveauPrix</label>
+      <input id="p_new" placeholder="120.00" />
+    </div>
+  `,'Appliquer', async ()=>{
+            try{
+                const payload = { nouveauPrix: Number(document.getElementById('p_new').value) };
+                await api(`/articles/${id}/prix`, {method:'PATCH', body: JSON.stringify(payload)});
+                closeModal();
+                toast('ok','Prix','Mis à jour');
+                showArticle(id);
+            }catch(e){
+                toast('err','Changement prix', formatErr(e));
+            }
+        });
+    }
+
+    function openRefuse(id){
+        openModal('Refuser l’article', `
+    <div class="field">
+      <label>motif</label>
+      <textarea id="r_motif">Non conforme</textarea>
+    </div>
+  `,'Refuser', async ()=>{
+            try{
+                const payload = { motif: document.getElementById('r_motif').value.trim() };
+                await api(`/articles/${id}/refuser`, {method:'PATCH', body: JSON.stringify(payload)});
+                closeModal();
+                toast('ok','Article','Refusé');
+                showArticle(id);
+            }catch(e){
+                toast('err','Refus', formatErr(e));
+            }
+        });
+    }
+
+    async function validerArticle(id){
+        try{
+            await api(`/articles/${id}/valider`, {method:'PATCH'});
+            toast('ok','Article','Validé');
+            if(currentDetail?.type==='article') showArticle(id); else loadArticles();
+        }catch(e){
+            toast('err','Validation', formatErr(e));
+        }
+    }
+
+    async function deleteArticle(id){
+        if(!confirm('Supprimer cet article ?')) return;
+        try{
+            await api('/articles/'+id,{method:'DELETE'});
+            toast('ok','Article','Supprimé');
+            renderArticles();
+        }catch(e){
+            toast('err','Suppression', formatErr(e));
+        }
+    }
+
+    /* Photos */
+    async function loadPhotos(articleId){
+        const box = document.getElementById('photosBox');
+        if(box) box.innerHTML = `<div class="empty">Chargement…</div>`;
+        try{
+            const photos = await api(`/articles/${articleId}/photos`);
+            if(!photos || photos.length===0){
+                if(box) box.innerHTML = `<div class="empty">Aucune photo.</div>`;
+                return;
+            }
+            const html = photos.map(p=>{
+                const pid = pickId(p) || p.id;
+                return `
+        <div class="card" style="box-shadow:none">
+          <div class="meta">
+            <span class="pill">ID: ${escapeHtml(pid)}</span>
+            <span class="pill">ordre: ${escapeHtml(p.ordre ?? '—')}</span>
+          </div>
+          <div style="margin:8px 0; word-break:break-all">${escapeHtml(p.url || '—')}</div>
+          <div class="row">
+            <button class="btn" onclick="openChangeOrdre('${articleId}','${pid}', ${Number(p.ordre||0)})">Modifier ordre</button>
+            <button class="btn danger" onclick="deletePhoto('${articleId}','${pid}')">Supprimer</button>
+          </div>
+        </div>
+      `;
+            }).join('');
+            if(box) box.innerHTML = `<div class="grid">${html}</div>`;
+        }catch(e){
+            toast('err','Photos', formatErr(e));
+            if(box) box.innerHTML = `<div class="empty">Impossible de charger les photos.</div>`;
+        }
+    }
+
+    function openAddPhoto(articleId){
+        openModal('Ajouter une photo', `
+    <div class="field">
+      <label>url</label>
+      <input id="ph_url" placeholder="https://example.com/photo.jpg" />
+    </div>
+    <div class="field">
+      <label>ordre</label>
+      <input id="ph_ordre" placeholder="1" />
+    </div>
+  `,'Ajouter', async ()=>{
+            try{
+                const payload = {
+                    url: document.getElementById('ph_url').value.trim(),
+                    ordre: Number(document.getElementById('ph_ordre').value)
+                };
+                await api(`/articles/${articleId}/photos`, {method:'POST', body: JSON.stringify(payload)});
+                closeModal();
+                toast('ok','Photos','Ajoutée');
+                loadPhotos(articleId);
+            }catch(e){
+                toast('err','Ajout photo', formatErr(e));
+            }
+        });
+    }
+
+    function openChangeOrdre(articleId, photoId, currentOrdre){
+        openModal('Modifier l’ordre', `
+    <div class="field">
+      <label>ordre</label>
+      <input id="ph_newOrdre" value="${escapeHtml(currentOrdre)}" />
+    </div>
+  `,'Appliquer', async ()=>{
+            try{
+                const ordre = Number(document.getElementById('ph_newOrdre').value);
+                await api(`/articles/${articleId}/photos/${photoId}/ordre?ordre=${encodeURIComponent(ordre)}`, {method:'PATCH'});
+                closeModal();
+                toast('ok','Photos','Ordre mis à jour');
+                loadPhotos(articleId);
+            }catch(e){
+                toast('err','Update ordre', formatErr(e));
+            }
+        });
+    }
+
+    async function deletePhoto(articleId, photoId){
+        if(!confirm('Supprimer cette photo ?')) return;
+        try{
+            await api(`/articles/${articleId}/photos/${photoId}`, {method:'DELETE'});
+            toast('ok','Photos','Supprimée');
+            loadPhotos(articleId);
+        }catch(e){
+            toast('err','Suppression photo', formatErr(e));
+        }
+    }
+
+    /* Signalements */
+    async function signaler(articleId){
+        try{
+            const signalantId = document.getElementById('sigSignalant').value.trim();
+            const payload = {
+                signalantId: signalantId || null,
+                raison: document.getElementById('sigRaison').value.trim(),
+                niveauGravite: document.getElementById('sigNiveau').value
+            };
+            Object.keys(payload).forEach(k => payload[k]===null && delete payload[k]);
+            await api(`/articles/${articleId}/signalements`, {method:'POST', body: JSON.stringify(payload)});
+            toast('ok','Signalement','Créé');
+        }catch(e){
+            toast('err','Signalement', formatErr(e));
+        }
+    }
+
+    function formatErr(e){
+        if(!e) return 'Erreur inconnue';
+        if(typeof e === 'string') return e;
+        if(e.status) return `HTTP ${e.status} – ${e.message || 'Erreur'}`;
+        return e.message || JSON.stringify(e);
+    }
+
+    /* ======================
+       BOUTIQUES
+       Endpoints:
+       POST /boutiques
+       GET /boutiques?vendeurId
+       GET /boutiques/{id}
+       PUT /boutiques/{id}
+       DELETE /boutiques/{id}
+    ====================== */
+    async function renderBoutiques(){
+        setViewTitle('Boutiques');
+        setToolbar(`
+    <input id="bVendeur" placeholder="vendeurId (filtre optionnel)" />
+    <button class="btn" onclick="loadBoutiques()">Filtrer</button>
+    <button class="btn primary" onclick="openCreateBoutique()">+ Créer</button>
+  `);
+        setView(`<div class="empty">Charge la liste…</div>`);
+        await loadBoutiques();
+    }
+
+    async function loadBoutiques(){
+        try{
+            const v = document.getElementById('bVendeur')?.value?.trim();
+            const qs = new URLSearchParams();
+            if(v) qs.set('vendeurId', v);
+            const list = await api('/boutiques' + (qs.toString()?('?'+qs.toString()):''));
+            if(!Array.isArray(list) || list.length===0){
+                setView(`<div class="empty">Aucune boutique.</div>`);
+                return;
+            }
+            const cards = list.map(b=>{
+                const id = b.id_boutique || b.id;
+                return `
+      <div class="card">
+        <h3>${escapeHtml(b.nom || b.libelle || 'Boutique')}</h3>
+        <div class="meta">
+          <span class="pill">ID: ${escapeHtml(id)}</span>
+          <span class="pill">vendeur: ${escapeHtml(b.vendeur_id || b.vendeurId || '—')}</span>
+        </div>
+        <div class="hr"></div>
+        <div class="row">
+          <button class="btn primary" onclick="showBoutique('${id}')">Détail</button>
+          <button class="btn" onclick="openEditBoutique('${id}')">Modifier</button>
+          <button class="btn danger" onclick="deleteBoutique('${id}')">Supprimer</button>
+        </div>
+      </div>`;
+            }).join('');
+            setView(`<div class="grid">${cards}</div>`);
+        }catch(e){
+            toast('err','Boutiques', formatErr(e));
+            setView(`<div class="empty">Impossible de charger les boutiques.</div>`);
+        }
+    }
+
+    async function showBoutique(id){
+        try{
+            currentDetail = { type:'boutique', id };
+            const b = await api('/boutiques/'+id);
+            setViewTitle('Détail boutique');
+            setToolbar(`
+      <button class="btn" onclick="renderBoutiques()">← Retour</button>
+      <button class="btn" onclick="openEditBoutique('${id}')">Modifier</button>
+      <button class="btn danger" onclick="deleteBoutique('${id}')">Supprimer</button>
+    `);
+            setView(`
+      <div class="card">
+        <h3>${escapeHtml(b.nom || b.libelle || 'Boutique')}</h3>
+        <div class="kv">
+          <div class="k">ID</div><div>${escapeHtml(b.id_boutique || id)}</div>
+          <div class="k">vendeur_id</div><div>${escapeHtml(b.vendeur_id || b.vendeurId || '—')}</div>
+        </div>
+      </div>
+    `);
+        }catch(e){
+            toast('err','Détail boutique', formatErr(e));
+            setView(`<div class="empty">Impossible de charger la boutique.</div>`);
+        }
+    }
+
+    function openCreateBoutique(){
+        // BoutiqueRequest inconnu (champs), je mets "nom" + "vendeur_id" (courant). Adapte si besoin.
+        openModal('Créer une boutique', `
+    <div class="field">
+      <label>nom</label>
+      <input id="bo_nom" placeholder="Ma boutique" />
+    </div>
+    <div class="field">
+      <label>vendeur_id (optionnel)</label>
+      <input id="bo_vendeur" placeholder="UUID vendeur" />
+    </div>
+  `,'Créer', async ()=>{
+            try{
+                const payload = {
+                    nom: document.getElementById('bo_nom').value.trim(),
+                    vendeur_id: document.getElementById('bo_vendeur').value.trim() || null
+                };
+                Object.keys(payload).forEach(k => payload[k]===null && delete payload[k]);
+                const created = await api('/boutiques',{method:'POST', body: JSON.stringify(payload)});
+                closeModal();
+                toast('ok','Boutique','Créée');
+                const id = created.id_boutique || created.id;
+                if(id) showBoutique(id); else renderBoutiques();
+            }catch(e){
+                toast('err','Création boutique', formatErr(e));
+            }
+        });
+    }
+
+    function openEditBoutique(id){
+        openModal('Modifier la boutique', `
+    <div class="field">
+      <label>nom</label>
+      <input id="bo_nom_u" placeholder="Nouveau nom" />
+    </div>
+    <div class="field">
+      <label>vendeur_id (optionnel)</label>
+      <input id="bo_vendeur_u" placeholder="UUID vendeur" />
+    </div>
+  `,'Enregistrer', async ()=>{
+            try{
+                const payload = {
+                    nom: document.getElementById('bo_nom_u').value.trim() || null,
+                    vendeur_id: document.getElementById('bo_vendeur_u').value.trim() || null
+                };
+                Object.keys(payload).forEach(k => payload[k]===null && delete payload[k]);
+                await api('/boutiques/'+id,{method:'PUT', body: JSON.stringify(payload)});
+                closeModal();
+                toast('ok','Boutique','Modifiée');
+                showBoutique(id);
+            }catch(e){
+                toast('err','Modification boutique', formatErr(e));
+            }
+        });
+    }
+
+    async function deleteBoutique(id){
+        if(!confirm('Supprimer cette boutique ?')) return;
+        try{
+            await api('/boutiques/'+id,{method:'DELETE'});
+            toast('ok','Boutique','Supprimée');
+            renderBoutiques();
+        }catch(e){
+            toast('err','Suppression boutique', formatErr(e));
+        }
+    }
+
+    /* ======================
+       CATEGORIES
+       Endpoints:
+       POST /categories
+       GET /categories?parentId
+       GET /categories/{id}
+       GET /categories/{id}/children
+       GET /categories/tree
+       PUT /categories/{id}
+       DELETE /categories/{id}
+    ====================== */
+    async function renderCategories(){
+        setViewTitle('Catégories');
+        setToolbar(`
+    <input id="cParent" placeholder="parentId (filtre optionnel)" />
+    <button class="btn" onclick="loadCategories()">Filtrer</button>
+    <button class="btn" onclick="loadCategoryTree()">Voir arbre</button>
+    <button class="btn primary" onclick="openCreateCategorie()">+ Créer</button>
+  `);
+        setView(`<div class="empty">Charge la liste…</div>`);
+        await loadCategories();
+    }
+
+    async function loadCategories(){
+        try{
+            const p = document.getElementById('cParent')?.value?.trim();
+            const qs = new URLSearchParams();
+            if(p) qs.set('parentId', p);
+            const list = await api('/categories' + (qs.toString()?('?'+qs.toString()):''));
+            if(!Array.isArray(list) || list.length===0){
+                setView(`<div class="empty">Aucune catégorie.</div>`);
+                return;
+            }
+            const cards = list.map(c=>{
+                const id = c.id_categorie || c.id;
+                const parent = c.parent_id || (c.parent && (c.parent.id_categorie || c.parent.id)) || '—';
+                return `
+        <div class="card">
+          <h3>${escapeHtml(c.libelle || 'Catégorie')}</h3>
+          <div class="meta">
+            <span class="pill">ID: ${escapeHtml(id)}</span>
+            <span class="pill">parent: ${escapeHtml(parent)}</span>
+          </div>
+          <div style="margin-top:8px;color:var(--muted);font-size:13px">${escapeHtml(c.description || '')}</div>
+          <div class="hr"></div>
+          <div class="row">
+            <button class="btn primary" onclick="showCategorie('${id}')">Détail</button>
+            <button class="btn" onclick="openEditCategorie('${id}')">Modifier</button>
+            <button class="btn danger" onclick="deleteCategorie('${id}')">Supprimer</button>
+          </div>
+        </div>
+      `;
+            }).join('');
+            setView(`<div class="grid">${cards}</div>`);
+        }catch(e){
+            toast('err','Catégories', formatErr(e));
+            setView(`<div class="empty">Impossible de charger les catégories.</div>`);
+        }
+    }
+
+    async function showCategorie(id){
+        try{
+            currentDetail = { type:'categorie', id };
+            const c = await api('/categories/'+id);
+            setViewTitle('Détail catégorie');
+            setToolbar(`
+      <button class="btn" onclick="renderCategories()">← Retour</button>
+      <button class="btn" onclick="openEditCategorie('${id}')">Modifier</button>
+      <button class="btn" onclick="loadChildren('${id}')">Voir enfants</button>
+      <button class="btn danger" onclick="deleteCategorie('${id}')">Supprimer</button>
+    `);
+            setView(`
+      <div class="card">
+        <h3>${escapeHtml(c.libelle || 'Catégorie')}</h3>
+        <div class="kv">
+          <div class="k">ID</div><div>${escapeHtml(c.id_categorie || id)}</div>
+          <div class="k">parent_id</div><div>${escapeHtml(c.parent_id || (c.parent && (c.parent.id_categorie||c.parent.id)) || '—')}</div>
+          <div class="k">description</div><div>${escapeHtml(c.description || '—')}</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <h3>Enfants</h3>
+        <div id="childrenBox" class="empty">Clique “Voir enfants”.</div>
+      </div>
+    `);
+        }catch(e){
+            toast('err','Détail catégorie', formatErr(e));
+            setView(`<div class="empty">Impossible de charger la catégorie.</div>`);
+        }
+    }
+
+    async function loadChildren(id){
+        const box = document.getElementById('childrenBox');
+        if(box) box.innerHTML = `<div class="empty">Chargement…</div>`;
+        try{
+            const children = await api(`/categories/${id}/children`);
+            if(!children || children.length===0){
+                if(box) box.innerHTML = `<div class="empty">Aucun enfant.</div>`;
+                return;
+            }
+            const html = children.map(c=>{
+                const cid = c.id_categorie || c.id;
+                return `<div class="card" style="box-shadow:none">
+        <h3>${escapeHtml(c.libelle || 'Catégorie')}</h3>
+        <div class="meta"><span class="pill">ID: ${escapeHtml(cid)}</span></div>
+        <button class="btn primary" style="margin-top:8px" onclick="showCategorie('${cid}')">Ouvrir</button>
+      </div>`;
+            }).join('');
+            if(box) box.innerHTML = `<div class="grid">${html}</div>`;
+        }catch(e){
+            toast('err','Enfants', formatErr(e));
+            if(box) box.innerHTML = `<div class="empty">Erreur chargement enfants.</div>`;
+        }
+    }
+
+    async function loadCategoryTree(){
+        try{
+            const roots = await api('/categories/tree');
+            setViewTitle('Arbre des catégories');
+            setToolbar(`
+      <button class="btn" onclick="renderCategories()">← Retour</button>
+      <button class="btn" onclick="loadCategoryTree()">↻ Rafraîchir</button>
+    `);
+
+            function renderNode(n, depth){
+                const pad = depth*14;
+                const kids = (n.children||[]).map(k=>renderNode(k, depth+1)).join('');
+                return `
+        <div style="padding-left:${pad}px; margin:6px 0">
+          <span class="pill">${escapeHtml(n.libelle || 'Catégorie')}</span>
+          <span style="color:var(--muted); font-size:12px; margin-left:8px">${escapeHtml(n.id)}</span>
+          <button class="btn" style="padding:4px 8px; margin-left:8px" onclick="showCategorie('${escapeHtml(n.id)}')">Détail</button>
+          ${kids}
+        </div>`;
+            }
+
+            const treeHtml = Array.isArray(roots) && roots.length
+                ? roots.map(r=>renderNode(r,0)).join('')
+                : `<div class="empty">Arbre vide.</div>`;
+
+            setView(`<div class="card">${treeHtml}</div>`);
+        }catch(e){
+            toast('err','Arbre catégories', formatErr(e));
+            setView(`<div class="empty">Impossible de charger l’arbre.</div>`);
+        }
+    }
+
+    function openCreateCategorie(){
+        openModal('Créer une catégorie', `
+    <div class="field">
+      <label>libelle</label>
+      <input id="cat_lib" placeholder="Ex: Electronique" />
+    </div>
+    <div class="field">
+      <label>description</label>
+      <textarea id="cat_desc" placeholder="Description..."></textarea>
+    </div>
+    <div class="field">
+      <label>parent_id (optionnel)</label>
+      <input id="cat_parent" placeholder="UUID parent" />
+    </div>
+  `,'Créer', async ()=>{
+            try{
+                const payload = {
+                    libelle: document.getElementById('cat_lib').value.trim(),
+                    description: document.getElementById('cat_desc').value.trim(),
+                    parent_id: document.getElementById('cat_parent').value.trim() || null
+                };
+                Object.keys(payload).forEach(k => payload[k]===null && delete payload[k]);
+                const created = await api('/categories',{method:'POST', body: JSON.stringify(payload)});
+                closeModal();
+                toast('ok','Catégorie','Créée');
+                const id = created.id_categorie || created.id;
+                if(id) showCategorie(id); else renderCategories();
+            }catch(e){
+                toast('err','Création catégorie', formatErr(e));
+            }
+        });
+    }
+
+    function openEditCategorie(id){
+        openModal('Modifier la catégorie', `
+    <div class="field">
+      <label>libelle</label>
+      <input id="cat_lib_u" placeholder="Nouveau libellé" />
+    </div>
+    <div class="field">
+      <label>description</label>
+      <textarea id="cat_desc_u" placeholder="Nouvelle description"></textarea>
+    </div>
+    <div class="field">
+      <label>parent_id (optionnel)</label>
+      <input id="cat_parent_u" placeholder="UUID parent (attention: pas égal à l’ID)" />
+    </div>
+  `,'Enregistrer', async ()=>{
+            try{
+                const payload = {
+                    libelle: document.getElementById('cat_lib_u').value.trim() || null,
+                    description: document.getElementById('cat_desc_u').value.trim() || null,
+                    parent_id: document.getElementById('cat_parent_u').value.trim() || null
+                };
+                Object.keys(payload).forEach(k => payload[k]===null && delete payload[k]);
+                await api('/categories/'+id,{method:'PUT', body: JSON.stringify(payload)});
+                closeModal();
+                toast('ok','Catégorie','Modifiée');
+                showCategorie(id);
+            }catch(e){
+                toast('err','Modification catégorie', formatErr(e));
+            }
+        });
+    }
+
+    async function deleteCategorie(id){
+        if(!confirm('Supprimer cette catégorie ?')) return;
+        try{
+            await api('/categories/'+id,{method:'DELETE'});
+            toast('ok','Catégorie','Supprimée');
+            renderCategories();
+        }catch(e){
+            toast('err','Suppression catégorie', formatErr(e));
+        }
+    }
+
+    /* Boot */
+    go('articles');
+</script>
+
+</body>
+</html>

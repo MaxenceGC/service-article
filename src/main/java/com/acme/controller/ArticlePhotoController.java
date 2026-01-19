@@ -1,6 +1,8 @@
 package com.acme.controller;
 
 import com.acme.controller.dto.request.ArticlePhotoRequest;
+import com.acme.controller.dto.response.ArticlePhotoResponse;
+import com.acme.controller.mapper.ArticlePhotoMapper;
 import com.acme.entity.article.ArticlePhoto;
 import com.acme.service.ArticlePhotoService;
 
@@ -12,6 +14,7 @@ import jakarta.ws.rs.core.Response;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Path("/articles/{articleId}/photos")
 @Produces(MediaType.APPLICATION_JSON)
@@ -24,13 +27,13 @@ public class ArticlePhotoController {
     @POST
     public Response addPhoto(@PathParam("articleId") UUID articleId, @Valid ArticlePhotoRequest request) {
         ArticlePhoto photo = photoService.add(articleId, request);
-        return Response.status(Response.Status.CREATED).entity(photo).build();
+        return Response.status(Response.Status.CREATED).entity(ArticlePhotoMapper.toResponse(photo)).build();
     }
 
     @GET
     public Response listPhotos(@PathParam("articleId") UUID articleId) {
         List<ArticlePhoto> photos = photoService.list(articleId);
-        return Response.ok(photos).build();
+        return Response.ok(photos.stream().map(ArticlePhotoMapper::toResponse).collect(Collectors.toList())).build();
     }
 
     @DELETE

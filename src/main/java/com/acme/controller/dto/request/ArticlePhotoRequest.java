@@ -7,5 +7,5 @@ public class ArticlePhotoRequest {
     @NotBlank
     public String url;
 
-    public int ordre;
+    public Integer ordre;
 }

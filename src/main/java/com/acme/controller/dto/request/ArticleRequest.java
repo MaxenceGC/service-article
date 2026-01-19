@@ -8,10 +8,8 @@ import java.util.UUID;
 
 public class ArticleRequest {
 
-    @NotNull
     public UUID vendeur_id;
 
-    @NotNull
     public UUID boutique_id;
 
     @NotNull

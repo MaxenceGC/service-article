@@ -7,13 +7,14 @@ import java.util.UUID;
 
 public class ArticleUpdateRequest {
 
+    @NotNull
     public UUID id_article;
 
-    @NotBlank
     public String titre;
 
     public String description;
 
-    @NotNull
     public UUID categorieId;
+
+    public UUID boutique_id;
 }

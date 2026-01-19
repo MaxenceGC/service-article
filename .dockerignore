@@ -1,5 +1,24 @@
-*
+# Réduire le contexte envoyé à Docker
+# Fichiers/dossiers de contrôle de version et IDE
+.git/
+.gitignore
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Artefacts de build Maven
+# On ignore target/ par défaut mais on ré-autorise ce qui est nécessaire pour les Dockerfiles Quarkus existants
+# (JVM/legacy-jar/native) qui copient depuis target/
+target/
+!target/quarkus-app/**
 !target/*-runner
 !target/*-runner.jar
-!target/lib/*
-!target/quarkus-app/*
+!target/lib/**
+
+# Autres fichiers inutiles dans le contexte
+node_modules/
+.env
+.mvn/wrapper/maven-wrapper.jar
+*.log
+*/**/thumbs.db
