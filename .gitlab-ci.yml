@@ -11,7 +11,8 @@ variables:
 
 default:
   image: maven:3.9-eclipse-temurin-21
-  tags: kubernetes
+  tags: 
+    - kubernetes
   cache:
     key: "m2-${CI_PROJECT_ID}-${CI_COMMIT_REF_SLUG}"
     paths:
@@ -20,7 +21,8 @@ default:
 
 verify:
   stage: test
-  tags: kubernetes
+  tags: 
+    - kubernetes
   script:
     - ./mvnw $MAVEN_CLI_OPTS -DskipTests=false -DskipITs=true verify
   artifacts:
@@ -34,7 +36,8 @@ verify:
 
 package:
   stage: build
-  tags: kubernetes
+  tags: 
+    - kubernetes
   needs: ["verify"]
   script:
     - ./mvnw $MAVEN_CLI_OPTS -DskipTests package
@@ -48,7 +51,8 @@ package:
 
 compose_build:
   stage: docker
-  tags: kubernetes
+  tags: 
+    - kubernetes
   image: docker:26
   services:
     - name: docker:26-dind
