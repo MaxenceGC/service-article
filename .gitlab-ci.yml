@@ -69,7 +69,8 @@ compose_build:
 
 compose_up:
   stage: deploy
-  tags: kubernetes
+  tags: 
+    - kubernetes
   image: docker:26
   services:
     - name: docker:26-dind
