@@ -89,7 +89,8 @@ compose_up:
 
 integration-tests:
   stage: test
-  tags: kubernetes
+  tags:
+    - kubernetes
   image: maven:3.9-eclipse-temurin-21
   services:
     - name: postgres:16-alpine
