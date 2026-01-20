@@ -94,7 +94,7 @@ build_image:
   stage: docker
   image: docker:26
   tags:
-    - docker-build
+    - kubernetes
   services:
     - name: docker:26-dind
       command: ["--tls=false"]
