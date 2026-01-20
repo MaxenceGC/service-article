@@ -92,23 +92,36 @@ package:
 ############################
 build_image:
   stage: docker
-  image: docker:26
+  image:
+    name: gcr.io/kaniko-project/executor:v1.23.2
+    entrypoint: [""]
   tags:
     - kubernetes
-  services:
-    - name: docker:26-dind
-      command: ["--tls=false"]
   variables:
-    DOCKER_HOST: tcp://docker:2375
+    DOCKER_CONFIG: /kaniko/.docker
   script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" -u "$CI_REGISTRY_USER" --password-stdin
-    - docker build -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" .
-    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
-    - docker tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" "$CI_REGISTRY_IMAGE:latest"
-    - docker push "$CI_REGISTRY_IMAGE:latest"
+    - mkdir -p /kaniko/.docker
+    - |
+      cat <<EOF > /kaniko/.docker/config.json
+      {
+        "auths": {
+          "$CI_REGISTRY": {
+            "username": "$CI_REGISTRY_USER",
+            "password": "$CI_REGISTRY_PASSWORD"
+          }
+        }
+      }
+      EOF
+    - >
+      /kaniko/executor
+      --context "$CI_PROJECT_DIR"
+      --dockerfile "$CI_PROJECT_DIR/Dockerfile"
+      --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+      --destination "$CI_REGISTRY_IMAGE:latest"
   needs: ["package"]
   rules:
     - if: $CI_COMMIT_BRANCH
+
 
 ############################
 # Déploiement production
