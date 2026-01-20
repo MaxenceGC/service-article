@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: article-service
+  labels:
+    app: article-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: article-service
+  template:
+    metadata:
+      labels:
+        app: article-service
+    spec:
+      containers:
+      - name: article-service
+        image: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        env:
+        - name: QUARKUS_DATASOURCE_JDBC_URL
+          valueFrom:
+            configMapKeyRef:
+              name: article-service-config
+              key: datasource.jdbc.url
+        - name: QUARKUS_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: article-service-secrets
+              key: db.username
+        - name: QUARKUS_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: article-service-secrets
+              key: db.password
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /q/health/live
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /q/health/ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: cache
+          mountPath: /home/quarkus/.cache
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: cache
+        emptyDir: {}
+      securityContext:
+        fsGroup: 1000
+      imagePullSecrets:
+      - name: registry-credentials
+
