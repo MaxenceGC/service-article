@@ -13,7 +13,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 
 @QuarkusTest
-class CategorieResourceTest extends IntegrationTestBase {
+class CategorieResourceIT extends IntegrationTestBase {
 
     @Test
     void createListChildrenAndTree() {

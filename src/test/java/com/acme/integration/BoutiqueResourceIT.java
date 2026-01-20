@@ -14,7 +14,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 
 @QuarkusTest
-class BoutiqueResourceTest extends IntegrationTestBase {
+class BoutiqueResourceIT extends IntegrationTestBase {
 
     @Test
     void createGetAndListBoutique() {

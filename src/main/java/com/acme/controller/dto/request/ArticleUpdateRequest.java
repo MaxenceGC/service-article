@@ -7,7 +7,6 @@ import java.util.UUID;
 
 public class ArticleUpdateRequest {
 
-    @NotNull
     public UUID id_article;
 
     public String titre;

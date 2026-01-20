@@ -13,7 +13,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 
 @QuarkusTest
-class ArticleResourceTest extends IntegrationTestBase {
+class ArticleResourceIT extends IntegrationTestBase {
 
     @Test
     void createUpdateAndDeleteArticle() {
