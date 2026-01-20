@@ -4,21 +4,30 @@ stages:
   - docker
   - deploy
 
+############################
 # Variables globales
+############################
 variables:
   MAVEN_CLI_OPTS: "-B -Dmaven.repo.local=.m2/repository"
   DOCKER_BUILDKIT: "1"
 
+############################
+# Configuration par défaut
+# (Maven sur runner Kubernetes)
+############################
 default:
   image: maven:3.9-eclipse-temurin-21
-  tags: 
-    - kubernetes
+  tags:
+    - k8s-maven
   cache:
     key: "m2-${CI_PROJECT_ID}-${CI_COMMIT_REF_SLUG}"
     paths:
       - .m2/repository
     policy: pull-push
 
+############################
+# Tests unitaires
+############################
 verify:
   stage: test
   script:
@@ -33,6 +42,9 @@ verify:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH
 
+############################
+# Tests d’intégration
+############################
 integration-tests:
   stage: test
   services:
@@ -53,9 +65,13 @@ integration-tests:
     expire_in: 1 week
     paths:
       - target/failsafe-reports/**
+  needs: ["verify"]
   rules:
     - if: $CI_COMMIT_BRANCH
 
+############################
+# Build applicatif
+############################
 package:
   stage: build
   needs: ["verify"]
@@ -70,71 +86,68 @@ package:
   rules:
     - if: $CI_COMMIT_BRANCH
 
+############################
+# Build & push image Docker
+# (runner Docker dédié)
+############################
 build_image:
   stage: docker
   image: docker:26
+  tags:
+    - docker-build
   services:
     - name: docker:26-dind
       command: ["--tls=false"]
   variables:
     DOCKER_HOST: tcp://docker:2375
   script:
-    - docker build -t ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA} .
-    - docker build -t ${CI_REGISTRY_IMAGE}:latest .
+    - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" -u "$CI_REGISTRY_USER" --password-stdin
+    - docker build -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" .
+    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - docker tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" "$CI_REGISTRY_IMAGE:latest"
+    - docker push "$CI_REGISTRY_IMAGE:latest"
   needs: ["package"]
   rules:
     - if: $CI_COMMIT_BRANCH
 
-# Déploiement en production
+############################
+# Déploiement production
+############################
 deploy:production:
   stage: deploy
   image:
     name: bitnami/kubectl:latest
-    entrypoint: ['']
+    entrypoint: [""]
   tags:
-    - kubernetes
+    - k8s-deploy
   needs:
     - job: build_image
       artifacts: false
   script:
-    - echo "Configuration Kubernetes"
     - kubectl version --client
-    - kubectl config current-context
-    - echo "Creating namespace..."
     - kubectl create namespace production --dry-run=client -o yaml | kubectl apply -f -
-    - echo "Creating Docker Registry Secret..."
-    - >
-      kubectl create secret docker-registry gitlab-registry
-      --docker-server=$CI_REGISTRY
-      --docker-username=$CI_REGISTRY_USER
-      --docker-password=$CI_REGISTRY_PASSWORD
-      --namespace=production
-      --dry-run=client -o yaml | kubectl apply -f -
-    - echo "Creating Database Secrets..."
-    - >
-      kubectl create secret generic article-service-secrets
-      --from-literal=db.username="$QUARKUS_DATASOURCE_USERNAME"
-      --from-literal=db.password="$QUARKUS_DATASOURCE_PASSWORD"
-      --namespace=production
-      --dry-run=client -o yaml | kubectl apply -f -
-    - echo "Creating ConfigMap..."
-    - >
-      kubectl create configmap article-service-config
-      --from-literal=datasource.jdbc.url="$QUARKUS_DATASOURCE_JDBC_URL"
-      --namespace=production
-      --dry-run=client -o yaml | kubectl apply -f -
-    - echo "Deploying article-service..."
-    - kubectl apply -f k8s/service.yaml -n production
-    - kubectl apply -f k8s/ingress.yaml -n production
-    - kubectl apply -f k8s/deployment.yaml -n production
-    - echo "Updating image..."
-    - DEPLOY_TAG=${CI_COMMIT_SHORT_SHA}
-    - FULL_IMAGE="$CI_REGISTRY_IMAGE:$DEPLOY_TAG"
-    - >
-      kubectl set image deployment/article-service
-      article-service=$FULL_IMAGE
-      -n production --record
-    - echo "Deployment completed"
+    - |
+      kubectl create secret docker-registry gitlab-registry \
+        --docker-server="$CI_REGISTRY" \
+        --docker-username="$CI_REGISTRY_USER" \
+        --docker-password="$CI_REGISTRY_PASSWORD" \
+        --namespace=production \
+        --dry-run=client -o yaml | kubectl apply -f -
+    - |
+      kubectl create secret generic article-service-secrets \
+        --from-literal=db.username="$QUARKUS_DATASOURCE_USERNAME" \
+        --from-literal=db.password="$QUARKUS_DATASOURCE_PASSWORD" \
+        --namespace=production \
+        --dry-run=client -o yaml | kubectl apply -f -
+    - |
+      kubectl create configmap article-service-config \
+        --from-literal=datasource.jdbc.url="$QUARKUS_DATASOURCE_JDBC_URL" \
+        --namespace=production \
+        --dry-run=client -o yaml | kubectl apply -f -
+    - kubectl apply -f k8s/ -n production
+    - kubectl set image deployment/article-service \
+      article-service="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" \
+      -n production
     - kubectl rollout status deployment/article-service -n production --timeout=5m
   environment:
     name: production
@@ -144,61 +157,47 @@ deploy:production:
       when: manual
   allow_failure: false
 
-# Déploiement pour les branches de test
+############################
+# Déploiement branches
+############################
 deploy:branch:
   stage: deploy
   image:
     name: bitnami/kubectl:latest
-    entrypoint: ['']
+    entrypoint: [""]
   tags:
-    - kubernetes
+    - k8s-deploy
   needs:
     - job: build_image
       artifacts: false
   script:
-    - echo "Configuration Kubernetes"
-    - kubectl version --client
-    - kubectl config current-context
-    - echo "Creating namespace..."
-    - kubectl create namespace $CI_COMMIT_REF_SLUG --dry-run=client -o yaml | kubectl apply -f -
-    - echo "Creating Docker Registry Secret..."
-    - >
-      kubectl create secret docker-registry gitlab-registry
-      --docker-server=$CI_REGISTRY
-      --docker-username=$CI_REGISTRY_USER
-      --docker-password=$CI_REGISTRY_PASSWORD
-      --namespace=$CI_COMMIT_REF_SLUG
-      --dry-run=client -o yaml | kubectl apply -f -
-    - echo "Creating Database Secrets..."
-    - >
-      kubectl create secret generic article-service-secrets
-      --from-literal=db.username="$QUARKUS_DATASOURCE_USERNAME"
-      --from-literal=db.password="$QUARKUS_DATASOURCE_PASSWORD"
-      --namespace=$CI_COMMIT_REF_SLUG
-      --dry-run=client -o yaml | kubectl apply -f -
-    - echo "Creating ConfigMap..."
-    - >
-      kubectl create configmap article-service-config
-      --from-literal=datasource.jdbc.url="$QUARKUS_DATASOURCE_JDBC_URL"
-      --namespace=$CI_COMMIT_REF_SLUG
-      --dry-run=client -o yaml | kubectl apply -f -
-    - echo "Deploying article-service..."
-    - kubectl apply -f k8s/service.yaml -n $CI_COMMIT_REF_SLUG
-    - kubectl apply -f k8s/ingress.yaml -n $CI_COMMIT_REF_SLUG
-    - kubectl apply -f k8s/deployment.yaml -n $CI_COMMIT_REF_SLUG
-    - echo "Updating image..."
-    - DEPLOY_TAG=${CI_COMMIT_SHORT_SHA}
-    - FULL_IMAGE="$CI_REGISTRY_IMAGE:$DEPLOY_TAG"
-    - >
-      kubectl set image deployment/article-service
-      article-service=$FULL_IMAGE
-      -n $CI_COMMIT_REF_SLUG --record
-    - echo "Deployment completed"
-    - kubectl rollout status deployment/article-service -n $CI_COMMIT_REF_SLUG --timeout=5m
+    - kubectl create namespace "$CI_COMMIT_REF_SLUG" --dry-run=client -o yaml | kubectl apply -f -
+    - |
+      kubectl create secret docker-registry gitlab-registry \
+        --docker-server="$CI_REGISTRY" \
+        --docker-username="$CI_REGISTRY_USER" \
+        --docker-password="$CI_REGISTRY_PASSWORD" \
+        --namespace="$CI_COMMIT_REF_SLUG" \
+        --dry-run=client -o yaml | kubectl apply -f -
+    - |
+      kubectl create secret generic article-service-secrets \
+        --from-literal=db.username="$QUARKUS_DATASOURCE_USERNAME" \
+        --from-literal=db.password="$QUARKUS_DATASOURCE_PASSWORD" \
+        --namespace="$CI_COMMIT_REF_SLUG" \
+        --dry-run=client -o yaml | kubectl apply -f -
+    - |
+      kubectl create configmap article-service-config \
+        --from-literal=datasource.jdbc.url="$QUARKUS_DATASOURCE_JDBC_URL" \
+        --namespace="$CI_COMMIT_REF_SLUG" \
+        --dry-run=client -o yaml | kubectl apply -f -
+    - kubectl apply -f k8s/ -n "$CI_COMMIT_REF_SLUG"
+    - kubectl set image deployment/article-service \
+      article-service="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" \
+      -n "$CI_COMMIT_REF_SLUG"
+    - kubectl rollout status deployment/article-service -n "$CI_COMMIT_REF_SLUG" --timeout=5m
   environment:
-    name: $CI_COMMIT_REF_SLUG
+    name: "$CI_COMMIT_REF_SLUG"
     url: https://satisfactorysquad.freeboxos.fr/$CI_COMMIT_REF_SLUG/article-service
   rules:
     - if: $CI_COMMIT_BRANCH != "main"
   allow_failure: false
-
