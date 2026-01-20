@@ -99,6 +99,7 @@ build_image:
     - kubernetes
   variables:
     DOCKER_CONFIG: /kaniko/.docker
+    FF_USE_LEGACY_KUBERNETES_EXECUTION_STRATEGY: "true"
   script:
     - mkdir -p /kaniko/.docker
     - |
