@@ -18,7 +18,7 @@ variables:
 default:
   image: maven:3.9-eclipse-temurin-21
   tags:
-    - k8s-maven
+    - kubernetes
   cache:
     key: "m2-${CI_PROJECT_ID}-${CI_COMMIT_REF_SLUG}"
     paths:
@@ -119,7 +119,7 @@ deploy:production:
     name: bitnami/kubectl:latest
     entrypoint: [""]
   tags:
-    - k8s-deploy
+    - kubernetes
   needs:
     - job: build_image
       artifacts: false
@@ -166,7 +166,7 @@ deploy:branch:
     name: bitnami/kubectl:latest
     entrypoint: [""]
   tags:
-    - k8s-deploy
+    - kubernetes
   needs:
     - job: build_image
       artifacts: false
