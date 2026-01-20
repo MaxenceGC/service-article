@@ -22,6 +22,7 @@ default:
 verify:
   stage: test
   script:
+    - chmod +x ./mvnw
     - ./mvnw $MAVEN_CLI_OPTS -DskipTests=false -DskipITs=true verify
   artifacts:
     when: always
@@ -45,6 +46,7 @@ integration-tests:
     QUARKUS_DATASOURCE_USERNAME: postgres
     QUARKUS_DATASOURCE_PASSWORD: postgres
   script:
+    - chmod +x ./mvnw
     - ./mvnw $MAVEN_CLI_OPTS -DskipTests=true -DskipITs=false verify
   artifacts:
     when: always
@@ -58,6 +60,7 @@ package:
   stage: build
   needs: ["verify"]
   script:
+    - chmod +x ./mvnw
     - ./mvnw $MAVEN_CLI_OPTS -DskipTests package
   artifacts:
     expire_in: 1 week
