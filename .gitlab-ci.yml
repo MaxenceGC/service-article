@@ -97,17 +97,29 @@ deploy:production:
     - echo "Configuration Kubernetes"
     - kubectl version --client
     - kubectl config current-context
-    - kubectl auth can-i get namespaces || echo "Warning: No namespace read permissions"
     - echo "Creating namespace..."
     - kubectl create namespace production --dry-run=client -o yaml | kubectl apply -f -
-    - echo "Waiting for namespace to be ready..."
-    - kubectl get namespace production || exit 1
     - echo "Creating Docker Registry Secret..."
-    - kubectl create secret docker-registry gitlab-registry --docker-server=$CI_REGISTRY --docker-username=$CI_REGISTRY_USER --docker-password=$CI_REGISTRY_PASSWORD --namespace=production --dry-run=client -o yaml | kubectl apply -f -
+    - >
+      kubectl create secret docker-registry gitlab-registry
+      --docker-server=$CI_REGISTRY
+      --docker-username=$CI_REGISTRY_USER
+      --docker-password=$CI_REGISTRY_PASSWORD
+      --namespace=production
+      --dry-run=client -o yaml | kubectl apply -f -
     - echo "Creating Database Secrets..."
-    - kubectl create secret generic article-service-secrets --from-literal=db.username="$QUARKUS_DATASOURCE_USERNAME" --from-literal=db.password="$QUARKUS_DATASOURCE_PASSWORD" --namespace=production --dry-run=client -o yaml | kubectl apply -f -
+    - >
+      kubectl create secret generic article-service-secrets
+      --from-literal=db.username="$QUARKUS_DATASOURCE_USERNAME"
+      --from-literal=db.password="$QUARKUS_DATASOURCE_PASSWORD"
+      --namespace=production
+      --dry-run=client -o yaml | kubectl apply -f -
     - echo "Creating ConfigMap..."
-    - kubectl create configmap article-service-config --from-literal=datasource.jdbc.url="$QUARKUS_DATASOURCE_JDBC_URL" --namespace=production --dry-run=client -o yaml | kubectl apply -f -
+    - >
+      kubectl create configmap article-service-config
+      --from-literal=datasource.jdbc.url="$QUARKUS_DATASOURCE_JDBC_URL"
+      --namespace=production
+      --dry-run=client -o yaml | kubectl apply -f -
     - echo "Deploying article-service..."
     - kubectl apply -f k8s/service.yaml -n production
     - kubectl apply -f k8s/ingress.yaml -n production
@@ -115,7 +127,10 @@ deploy:production:
     - echo "Updating image..."
     - DEPLOY_TAG=${CI_COMMIT_SHORT_SHA}
     - FULL_IMAGE="$CI_REGISTRY_IMAGE:$DEPLOY_TAG"
-    - kubectl set image deployment/article-service article-service=$FULL_IMAGE -n production --record
+    - >
+      kubectl set image deployment/article-service
+      article-service=$FULL_IMAGE
+      -n production --record
     - echo "Deployment completed"
     - kubectl rollout status deployment/article-service -n production --timeout=5m
   environment:
@@ -141,17 +156,29 @@ deploy:branch:
     - echo "Configuration Kubernetes"
     - kubectl version --client
     - kubectl config current-context
-    - kubectl auth can-i get namespaces || echo "Warning: No namespace read permissions"
     - echo "Creating namespace..."
     - kubectl create namespace $CI_COMMIT_REF_SLUG --dry-run=client -o yaml | kubectl apply -f -
-    - echo "Waiting for namespace to be ready..."
-    - kubectl get namespace $CI_COMMIT_REF_SLUG || exit 1
     - echo "Creating Docker Registry Secret..."
-    - kubectl create secret docker-registry gitlab-registry --docker-server=$CI_REGISTRY --docker-username=$CI_REGISTRY_USER --docker-password=$CI_REGISTRY_PASSWORD --namespace=$CI_COMMIT_REF_SLUG --dry-run=client -o yaml | kubectl apply -f -
+    - >
+      kubectl create secret docker-registry gitlab-registry
+      --docker-server=$CI_REGISTRY
+      --docker-username=$CI_REGISTRY_USER
+      --docker-password=$CI_REGISTRY_PASSWORD
+      --namespace=$CI_COMMIT_REF_SLUG
+      --dry-run=client -o yaml | kubectl apply -f -
     - echo "Creating Database Secrets..."
-    - kubectl create secret generic article-service-secrets --from-literal=db.username="$QUARKUS_DATASOURCE_USERNAME" --from-literal=db.password="$QUARKUS_DATASOURCE_PASSWORD" --namespace=$CI_COMMIT_REF_SLUG --dry-run=client -o yaml | kubectl apply -f -
+    - >
+      kubectl create secret generic article-service-secrets
+      --from-literal=db.username="$QUARKUS_DATASOURCE_USERNAME"
+      --from-literal=db.password="$QUARKUS_DATASOURCE_PASSWORD"
+      --namespace=$CI_COMMIT_REF_SLUG
+      --dry-run=client -o yaml | kubectl apply -f -
     - echo "Creating ConfigMap..."
-    - kubectl create configmap article-service-config --from-literal=datasource.jdbc.url="$QUARKUS_DATASOURCE_JDBC_URL" --namespace=$CI_COMMIT_REF_SLUG --dry-run=client -o yaml | kubectl apply -f -
+    - >
+      kubectl create configmap article-service-config
+      --from-literal=datasource.jdbc.url="$QUARKUS_DATASOURCE_JDBC_URL"
+      --namespace=$CI_COMMIT_REF_SLUG
+      --dry-run=client -o yaml | kubectl apply -f -
     - echo "Deploying article-service..."
     - kubectl apply -f k8s/service.yaml -n $CI_COMMIT_REF_SLUG
     - kubectl apply -f k8s/ingress.yaml -n $CI_COMMIT_REF_SLUG
@@ -159,7 +186,10 @@ deploy:branch:
     - echo "Updating image..."
     - DEPLOY_TAG=${CI_COMMIT_SHORT_SHA}
     - FULL_IMAGE="$CI_REGISTRY_IMAGE:$DEPLOY_TAG"
-    - kubectl set image deployment/article-service article-service=$FULL_IMAGE -n $CI_COMMIT_REF_SLUG --record
+    - >
+      kubectl set image deployment/article-service
+      article-service=$FULL_IMAGE
+      -n $CI_COMMIT_REF_SLUG --record
     - echo "Deployment completed"
     - kubectl rollout status deployment/article-service -n $CI_COMMIT_REF_SLUG --timeout=5m
   environment:
