@@ -1,6 +1,9 @@
-gitops:
-  manifest_projects:
-  - id: b-s-m/article-service
-    paths:
-      glob: 'k8s/**/*.yaml'
-
+ci_access:
+  projects:
+    - id: b-s-m/article-service
+      default_namespace: production
+      environments:
+        - name: production
+          namespace: production
+        - name: "*"
+          namespace: ${CI_COMMIT_REF_SLUG}

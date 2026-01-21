@@ -136,42 +136,58 @@ deploy:production:
       artifacts: false
   variables:
     NAMESPACE: production
-    REGISTRY_SERVER: $CI_REGISTRY
-    REGISTRY_USER: $CI_REGISTRY_USER
-    REGISTRY_PASSWORD: $CI_REGISTRY_PASSWORD
-    DB_USER: $QUARKUS_DATASOURCE_USERNAME
-    DB_PASSWORD: $QUARKUS_DATASOURCE_PASSWORD
-    DB_URL: $QUARKUS_DATASOURCE_JDBC_URL
-    IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+    KUBE_CONTEXT: "b-s-m/article-service:infra-home-agent"  # ← Ajout important
+  before_script:
+    - kubectl config get-contexts
+    - kubectl config use-context "$KUBE_CONTEXT"
   script:
-    - echo "Waiting for namespace production to be created by GitLab Agent..."
-    - for i in {1..60}; do kubectl get namespace production 2>/dev/null && break; echo "Waiting... ($i/60)"; sleep 2; done
-    - echo "Checking RBAC permissions..."
-    - for i in {1..60}; do kubectl get role article-service-deployer -n production 2>/dev/null && break; echo "Waiting for Role... ($i/60)"; sleep 2; done
+    # Pas besoin d'attendre le namespace, il existe déjà
     - echo "Deploying to namespace $NAMESPACE..."
-    - echo "Creating registry secret..."
-    - kubectl create secret docker-registry gitlab-registry --docker-server=$REGISTRY_SERVER --docker-username=$REGISTRY_USER --docker-password=$REGISTRY_PASSWORD --namespace=$NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
-    - echo "Creating database secret..."
-    - kubectl create secret generic article-service-secrets --from-literal=db.username=$DB_USER --from-literal=db.password=$DB_PASSWORD --namespace=$NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
-    - echo "Creating configmap..."
-    - kubectl create configmap article-service-config --from-literal=datasource.jdbc.url=$DB_URL --namespace=$NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
-    - echo "Deploying application..."
-    - kubectl apply -f k8s/deployment.yaml -f k8s/service.yaml -f k8s/ingress.yaml -n $NAMESPACE
-    - echo "Updating image..."
-    - kubectl set image deployment/article-service article-service=$IMAGE -n $NAMESPACE
-    - echo "Waiting for rollout..."
+
+    # Créer le secret registry
+    - |
+      kubectl create secret docker-registry registry-credentials \
+        --docker-server=$CI_REGISTRY \
+        --docker-username=$CI_REGISTRY_USER \
+        --docker-password=$CI_REGISTRY_PASSWORD \
+        --namespace=$NAMESPACE \
+        --dry-run=client -o yaml | kubectl apply -f -
+
+    # Créer les secrets de base de données
+    - |
+      kubectl create secret generic article-service-secrets \
+        --from-literal=db.username=$QUARKUS_DATASOURCE_USERNAME \
+        --from-literal=db.password=$QUARKUS_DATASOURCE_PASSWORD \
+        --namespace=$NAMESPACE \
+        --dry-run=client -o yaml | kubectl apply -f -
+
+    # Créer le configmap
+    - |
+      kubectl create configmap article-service-config \
+        --from-literal=datasource.jdbc.url=$QUARKUS_DATASOURCE_JDBC_URL \
+        --namespace=$NAMESPACE \
+        --dry-run=client -o yaml | kubectl apply -f -
+
+    # Substituer les variables dans deployment.yaml
+    - |
+      export CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE
+      export CI_COMMIT_SHORT_SHA=$CI_COMMIT_SHORT_SHA
+      envsubst < k8s/deployment.yaml | kubectl apply -f - -n $NAMESPACE
+
+    # Appliquer service et ingress
+    - kubectl apply -f k8s/service.yaml -f k8s/ingress.yaml -n $NAMESPACE
+
+    # Attendre le rollout
     - kubectl rollout status deployment/article-service -n $NAMESPACE --timeout=5m
   environment:
     name: production
+    kubernetes:
+      namespace: production
     url: https://satisfactorysquad.freeboxos.fr/article-service
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       when: manual
-  allow_failure: false
 
-############################
-# Déploiement branches
-############################
 deploy:branch:
   stage: deploy
   image:
@@ -183,31 +199,52 @@ deploy:branch:
     - job: build_image
       artifacts: false
   variables:
-    REGISTRY_SERVER: $CI_REGISTRY
-    REGISTRY_USER: $CI_REGISTRY_USER
-    REGISTRY_PASSWORD: $CI_REGISTRY_PASSWORD
-    DB_USER: $QUARKUS_DATASOURCE_USERNAME
-    DB_PASSWORD: $QUARKUS_DATASOURCE_PASSWORD
-    DB_URL: $QUARKUS_DATASOURCE_JDBC_URL
-    IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-  script:
+    KUBE_CONTEXT: "b-s-m/article-service:infra-home-agent"
+  before_script:
     - export NAMESPACE=$CI_COMMIT_REF_SLUG
+    - kubectl config use-context "$KUBE_CONTEXT"
+
+    # Créer le namespace s'il n'existe pas
+    - kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+
+    # Créer les RBAC pour ce namespace
+    - sed "s/NAMESPACE_PLACEHOLDER/$NAMESPACE/g" k8s/rbac-branch-template.yaml | kubectl apply -f -
+  script:
     - echo "Deploying to namespace $NAMESPACE..."
-    - echo "Creating registry secret..."
-    - kubectl create secret docker-registry gitlab-registry --docker-server=$REGISTRY_SERVER --docker-username=$REGISTRY_USER --docker-password=$REGISTRY_PASSWORD --namespace=$NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
-    - echo "Creating database secret..."
-    - kubectl create secret generic article-service-secrets --from-literal=db.username=$DB_USER --from-literal=db.password=$DB_PASSWORD --namespace=$NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
-    - echo "Creating configmap..."
-    - kubectl create configmap article-service-config --from-literal=datasource.jdbc.url=$DB_URL --namespace=$NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
-    - echo "Deploying application..."
-    - kubectl apply -f k8s/deployment.yaml -f k8s/service.yaml -f k8s/ingress.yaml -n $NAMESPACE
-    - echo "Updating image..."
-    - kubectl set image deployment/article-service article-service=$IMAGE -n $NAMESPACE
-    - echo "Waiting for rollout..."
+
+    # Reste identique au deploy:production
+    - |
+      kubectl create secret docker-registry registry-credentials \
+        --docker-server=$CI_REGISTRY \
+        --docker-username=$CI_REGISTRY_USER \
+        --docker-password=$CI_REGISTRY_PASSWORD \
+        --namespace=$NAMESPACE \
+        --dry-run=client -o yaml | kubectl apply -f -
+
+    - |
+      kubectl create secret generic article-service-secrets \
+        --from-literal=db.username=$QUARKUS_DATASOURCE_USERNAME \
+        --from-literal=db.password=$QUARKUS_DATASOURCE_PASSWORD \
+        --namespace=$NAMESPACE \
+        --dry-run=client -o yaml | kubectl apply -f -
+
+    - |
+      kubectl create configmap article-service-config \
+        --from-literal=datasource.jdbc.url=$QUARKUS_DATASOURCE_JDBC_URL \
+        --namespace=$NAMESPACE \
+        --dry-run=client -o yaml | kubectl apply -f -
+
+    - |
+      export CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE
+      export CI_COMMIT_SHORT_SHA=$CI_COMMIT_SHORT_SHA
+      envsubst < k8s/deployment.yaml | kubectl apply -f - -n $NAMESPACE
+
+    - kubectl apply -f k8s/service.yaml -f k8s/ingress.yaml -n $NAMESPACE
     - kubectl rollout status deployment/article-service -n $NAMESPACE --timeout=5m
   environment:
     name: "$CI_COMMIT_REF_SLUG"
+    kubernetes:
+      namespace: "$CI_COMMIT_REF_SLUG"
     url: https://satisfactorysquad.freeboxos.fr/$CI_COMMIT_REF_SLUG/article-service
   rules:
     - if: $CI_COMMIT_BRANCH != "main"
-  allow_failure: false
