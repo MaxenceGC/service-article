@@ -145,6 +145,10 @@ deploy:production:
     IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   script:
     - echo "Deploying to namespace $NAMESPACE..."
+    - echo "Applying RBAC permissions..."
+    - kubectl apply -f k8s/rbac-cluster.yaml
+    - kubectl create namespace $NAMESPACE --dry-run=server -o yaml 2>/dev/null | kubectl apply -f - || true
+    - kubectl apply -f k8s/rbac.yaml
     - echo "Creating registry secret..."
     - kubectl create secret docker-registry gitlab-registry --docker-server=$REGISTRY_SERVER --docker-username=$REGISTRY_USER --docker-password=$REGISTRY_PASSWORD --namespace=$NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
     - echo "Creating database secret..."
@@ -188,9 +192,10 @@ deploy:branch:
     IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   script:
     - export NAMESPACE=$CI_COMMIT_REF_SLUG
-    - echo "Creating namespace $NAMESPACE..."
+    - echo "Deploying to namespace $NAMESPACE..."
+    - echo "Applying RBAC permissions..."
+    - kubectl apply -f k8s/rbac-cluster.yaml
     - kubectl create namespace $NAMESPACE --dry-run=server -o yaml 2>/dev/null | kubectl apply -f - || true
-    - echo "Setting up RBAC..."
     - sed "s/NAMESPACE_PLACEHOLDER/$NAMESPACE/g" k8s/rbac-branch-template.yaml | kubectl apply -f -
     - echo "Creating registry secret..."
     - kubectl create secret docker-registry gitlab-registry --docker-server=$REGISTRY_SERVER --docker-username=$REGISTRY_USER --docker-password=$REGISTRY_PASSWORD --namespace=$NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
