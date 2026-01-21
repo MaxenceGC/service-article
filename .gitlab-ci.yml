@@ -99,43 +99,21 @@ build_image:
     DOCKER_TLS_CERTDIR: ""
     DOCKER_DRIVER: overlay2
     DOCKER_BUILDKIT: "1"
-    
+    BUILD_DATE: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
   before_script:
-    - echo "⏳ Attente du démarrage de Docker daemon..."
-    - for i in $(seq 1 30); do if docker info >/dev/null 2>&1; then echo "✅ Docker daemon prêt (tentative $i)"; break; fi; echo "⏳ Attente... ($i/30)"; sleep 2; done
-    - echo ""
-    - echo "📊 Informations Docker:"
+    - echo "Waiting for Docker daemon..."
+    - for i in {1..30}; do docker info > /dev/null 2>&1 && break; sleep 2; done
     - docker info
     - docker version
-    - echo ""
-    - echo "🔐 Authentification au registry..."
+    - echo "Authenticating to registry..."
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-    - echo "✅ Authentifié sur ${CI_REGISTRY}"
-    
   script:
-    - echo ""
-    - echo "📍 Informations du build:"
-    - echo "   Registry: ${CI_REGISTRY}"
-    - echo "   Image: ${CI_REGISTRY_IMAGE}"
-    - echo "   Tags: ${CI_COMMIT_SHORT_SHA}, latest"
-    - echo "   Commit: ${CI_COMMIT_SHA}"
-    - echo "   Branch: ${CI_COMMIT_BRANCH}"
-    - echo ""
-    - echo "🔨 Construction de l'image Docker..."
-    - docker build --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" --build-arg VCS_REF="${CI_COMMIT_SHORT_SHA}" --build-arg VERSION="${CI_COMMIT_SHORT_SHA}" --tag "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}" --tag "${CI_REGISTRY_IMAGE}:latest" --progress=plain .
-    - echo ""
-    - echo "📤 Push de l'image vers le registry..."
-    - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
-    - docker push "${CI_REGISTRY_IMAGE}:latest"
-    - echo ""
-    - echo "✅ Build et push terminés avec succès!"
-    - echo ""
-    - echo "📦 Images disponibles:"
-    - echo "   ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
-    - echo "   ${CI_REGISTRY_IMAGE}:latest"
-    - echo ""
-    - docker images | grep "${CI_REGISTRY_IMAGE}"
-  
+    - echo "Building Docker image..."
+    - docker build --build-arg BUILD_DATE="$BUILD_DATE" --build-arg VCS_REF="$CI_COMMIT_SHORT_SHA" --build-arg VERSION="$CI_COMMIT_SHORT_SHA" --tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" --tag "$CI_REGISTRY_IMAGE:latest" .
+    - echo "Pushing image to registry..."
+    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - docker push "$CI_REGISTRY_IMAGE:latest"
+    - echo "Build completed successfully!"
   needs: ["package"]
   rules:
     - if: $CI_COMMIT_BRANCH
