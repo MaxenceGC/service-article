@@ -135,8 +135,8 @@ deploy:production:
     - job: build_image
       artifacts: false
   script:
-    - echo "Creating namespace..."
-    - kubectl create namespace production --dry-run=client -o yaml | kubectl apply -f -
+    - echo "Checking namespace..."
+    - kubectl get namespace production || (echo "Production namespace not found. Please create it manually: kubectl create namespace production" && exit 1)
     - echo "Creating secrets..."
     - kubectl create secret docker-registry gitlab-registry --docker-server="$CI_REGISTRY" --docker-username="$CI_REGISTRY_USER" --docker-password="$CI_REGISTRY_PASSWORD" --namespace=production --dry-run=client -o yaml | kubectl apply -f -
     - kubectl create secret generic article-service-secrets --from-literal=db.username="$QUARKUS_DATASOURCE_USERNAME" --from-literal=db.password="$QUARKUS_DATASOURCE_PASSWORD" --namespace=production --dry-run=client -o yaml | kubectl apply -f -
@@ -170,8 +170,8 @@ deploy:branch:
     - job: build_image
       artifacts: false
   script:
-    - echo "Creating namespace..."
-    - kubectl create namespace "$CI_COMMIT_REF_SLUG" --dry-run=client -o yaml | kubectl apply -f -
+    - echo "Creating/checking namespace $CI_COMMIT_REF_SLUG..."
+    - kubectl create namespace "$CI_COMMIT_REF_SLUG" --dry-run=server -o yaml 2>/dev/null | kubectl apply -f - || true
     - echo "Setting up RBAC permissions for namespace..."
     - sed "s/NAMESPACE_PLACEHOLDER/$CI_COMMIT_REF_SLUG/g" k8s/rbac-branch-template.yaml | kubectl apply -f -
     - echo "Creating secrets..."
