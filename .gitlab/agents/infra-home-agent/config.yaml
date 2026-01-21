@@ -1,0 +1,6 @@
+gitops:
+  manifest_projects:
+  - id: b-s-m/article-service
+    paths:
+      glob: 'k8s/**/*.yaml'
+

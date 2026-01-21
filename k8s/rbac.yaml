@@ -26,7 +26,7 @@ rules:
     verbs: ["get", "list"]
 
 ---
-# RoleBinding pour production avec gitlab-runner
+# RoleBinding pour production avec GitLab Agent
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -38,6 +38,6 @@ roleRef:
   name: article-service-deployer
 subjects:
   - kind: ServiceAccount
-    name: gitlab-runner
-    namespace: gitlab-runner
+    name: infra-home-agent-gitlab-agent
+    namespace: gitlab-agent-infra-home-agent
 

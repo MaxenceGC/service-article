@@ -1,37 +1,32 @@
 ---
 # ======================================
-# CLUSTER-LEVEL PERMISSIONS for gitlab-runner
-# Ces permissions permettent au runner GitLab de gérer les namespaces et les RBAC
+# CLUSTER-LEVEL PERMISSIONS for GitLab Agent
 # ======================================
 
-# ClusterRole pour la gestion des namespaces et RBAC
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: gitlab-runner-deployer
+  name: gitlab-agent-deployer
 rules:
-  # Permissions pour les namespaces
   - apiGroups: [""]
     resources: ["namespaces"]
     verbs: ["get", "list", "create", "patch", "update", "watch"]
 
-  # Permissions pour créer et gérer les RBAC
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
     verbs: ["get", "list", "create", "patch", "update", "watch"]
 
 ---
-# ClusterRoleBinding pour accorder les permissions cluster au runner GitLab
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: gitlab-runner-deployer-binding
+  name: gitlab-agent-deployer-binding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: gitlab-runner-deployer
+  name: gitlab-agent-deployer
 subjects:
   - kind: ServiceAccount
-    name: gitlab-runner
-    namespace: gitlab-runner
+    name: infra-home-agent-gitlab-agent
+    namespace: gitlab-agent-infra-home-agent
 
