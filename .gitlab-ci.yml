@@ -144,8 +144,7 @@ deploy:production:
     DB_URL: $QUARKUS_DATASOURCE_JDBC_URL
     IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   script:
-    - echo "Checking namespace..."
-    - kubectl get namespace $NAMESPACE || exit 1
+    - echo "Deploying to namespace $NAMESPACE..."
     - echo "Creating registry secret..."
     - kubectl create secret docker-registry gitlab-registry --docker-server=$REGISTRY_SERVER --docker-username=$REGISTRY_USER --docker-password=$REGISTRY_PASSWORD --namespace=$NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
     - echo "Creating database secret..."

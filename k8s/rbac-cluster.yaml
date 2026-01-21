@@ -14,12 +14,12 @@ rules:
   # Permissions pour les namespaces
   - apiGroups: [""]
     resources: ["namespaces"]
-    verbs: ["get", "list", "create", "patch", "update"]
+    verbs: ["get", "list", "create", "patch", "update", "watch"]
 
   # Permissions pour créer et gérer les RBAC
   - apiGroups: ["rbac.authorization.k8s.io"]
-    resources: ["roles", "rolebindings"]
-    verbs: ["get", "list", "create", "patch", "update"]
+    resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+    verbs: ["get", "list", "create", "patch", "update", "watch"]
 
 ---
 # ClusterRoleBinding pour accorder les permissions cluster au service account GitLab Runner
