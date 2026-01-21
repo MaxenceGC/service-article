@@ -144,6 +144,10 @@ deploy:production:
     DB_URL: $QUARKUS_DATASOURCE_JDBC_URL
     IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   script:
+    - echo "Waiting for namespace production to be created by GitLab Agent..."
+    - for i in {1..60}; do kubectl get namespace production 2>/dev/null && break; echo "Waiting... ($i/60)"; sleep 2; done
+    - echo "Checking RBAC permissions..."
+    - for i in {1..60}; do kubectl get role article-service-deployer -n production 2>/dev/null && break; echo "Waiting for Role... ($i/60)"; sleep 2; done
     - echo "Deploying to namespace $NAMESPACE..."
     - echo "Creating registry secret..."
     - kubectl create secret docker-registry gitlab-registry --docker-server=$REGISTRY_SERVER --docker-username=$REGISTRY_USER --docker-password=$REGISTRY_PASSWORD --namespace=$NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
