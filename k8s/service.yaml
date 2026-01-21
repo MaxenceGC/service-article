@@ -1,16 +1,15 @@
 apiVersion: v1
-    protocol: TCP
-    targetPort: 8080
-    port: 80
-  - name: http
-  ports:
-    app: article-service
-  selector:
-  type: ClusterIP
-spec:
-    app: article-service
-  labels:
-  name: article-service
-metadata:
 kind: Service
-
+metadata:
+  name: article-service
+  labels:
+    app: article-service
+spec:
+  type: ClusterIP
+  selector:
+    app: article-service
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
