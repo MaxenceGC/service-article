@@ -86,53 +86,81 @@ package:
   rules:
     - if: $CI_COMMIT_BRANCH
 
-############################
-# Build & push image Docker
-# (runner Docker dédié)
-############################
 build_image:
   stage: docker
-  image:
-    name: gcr.io/kaniko-project/executor:v1.23.2-debug  # ← Ajouter -debug !
-    entrypoint: [""]
+  image: docker:24-cli
+  services:
+    - name: docker:24-dind
+      command: ["dockerd", "--host=tcp://0.0.0.0:2375", "--tls=false"]
   tags:
     - kubernetes
   variables:
-    FF_USE_LEGACY_KUBERNETES_EXECUTION_STRATEGY: "false"
-    FF_KUBERNETES_HONOR_ENTRYPOINT: "true"
-    DOCKER_CONFIG: /kaniko/.docker
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    DOCKER_BUILDKIT: "1"
+    
+  before_script:
+    - echo "⏳ Attente du démarrage de Docker daemon..."
+    - |
+      for i in $(seq 1 30); do
+        if docker info >/dev/null 2>&1; then
+          echo "✅ Docker daemon prêt (tentative $i)"
+          break
+        fi
+        echo "⏳ Attente... ($i/30)"
+        sleep 2
+      done
+    
+    - echo ""
+    - echo "📊 Informations Docker:"
+    - docker info
+    - docker version
+    
+    - echo ""
+    - echo "🔐 Authentification au registry..."
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - echo "✅ Authentifié sur ${CI_REGISTRY}"
     
   script:
-    - echo "🔧 Configuration Kaniko..."
-    - mkdir -p /kaniko/.docker
+    - echo ""
+    - echo "📍 Informations du build:"
+    - echo "   Registry: ${CI_REGISTRY}"
+    - echo "   Image: ${CI_REGISTRY_IMAGE}"
+    - echo "   Tags: ${CI_COMMIT_SHORT_SHA}, latest"
+    - echo "   Commit: ${CI_COMMIT_SHA}"
+    - echo "   Branch: ${CI_COMMIT_BRANCH}"
+    
+    - echo ""
+    - echo "🔨 Construction de l'image Docker..."
     - |
-      cat > /kaniko/.docker/config.json <<EOF
-      {
-        "auths": {
-          "${CI_REGISTRY}": {
-            "auth": "$(printf "%s:%s" "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')"
-          }
-        }
-      }
-      EOF
+      docker build \
+        --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+        --build-arg VCS_REF="${CI_COMMIT_SHORT_SHA}" \
+        --build-arg VERSION="${CI_COMMIT_SHORT_SHA}" \
+        --tag "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}" \
+        --tag "${CI_REGISTRY_IMAGE}:latest" \
+        --progress=plain \
+        .
     
-    - echo "✅ Authentification configurée"
+    - echo ""
+    - echo "📤 Push de l'image vers le registry..."
+    - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
+    - docker push "${CI_REGISTRY_IMAGE}:latest"
     
-    - echo "🔨 Lancement du build..."
-    - |
-      /kaniko/executor \
-        --context "${CI_PROJECT_DIR}" \
-        --dockerfile "${CI_PROJECT_DIR}/Dockerfile" \
-        --destination "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}" \
-        --destination "${CI_REGISTRY_IMAGE}:latest" \
-        --cache=true \
-        --verbosity=info
-    
-    - echo "✅ Build terminé"
+    - echo ""
+    - echo "✅ Build et push terminés avec succès!"
+    - echo ""
+    - echo "📦 Images disponibles:"
+    - echo "   ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
+    - echo "   ${CI_REGISTRY_IMAGE}:latest"
+    - echo ""
+    - docker images | grep "${CI_REGISTRY_IMAGE}"
   
   needs: ["package"]
   rules:
     - if: $CI_COMMIT_BRANCH
+      when: on_success
 
 
 
