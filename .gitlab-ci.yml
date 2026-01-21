@@ -93,35 +93,47 @@ package:
 build_image:
   stage: docker
   image:
-    name: gcr.io/kaniko-project/executor:v1.23.2
+    name: gcr.io/kaniko-project/executor:v1.23.2-debug  # ← Ajouter -debug !
     entrypoint: [""]
   tags:
     - kubernetes
   variables:
+    FF_USE_LEGACY_KUBERNETES_EXECUTION_STRATEGY: "false"
+    FF_KUBERNETES_HONOR_ENTRYPOINT: "true"
     DOCKER_CONFIG: /kaniko/.docker
-    FF_USE_LEGACY_KUBERNETES_EXECUTION_STRATEGY: "true"
+    
   script:
+    - echo "🔧 Configuration Kaniko..."
     - mkdir -p /kaniko/.docker
     - |
-      cat <<EOF > /kaniko/.docker/config.json
+      cat > /kaniko/.docker/config.json <<EOF
       {
         "auths": {
-          "$CI_REGISTRY": {
-            "username": "$CI_REGISTRY_USER",
-            "password": "$CI_REGISTRY_PASSWORD"
+          "${CI_REGISTRY}": {
+            "auth": "$(printf "%s:%s" "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')"
           }
         }
       }
       EOF
-    - >
-      /kaniko/executor
-      --context "$CI_PROJECT_DIR"
-      --dockerfile "$CI_PROJECT_DIR/Dockerfile"
-      --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
-      --destination "$CI_REGISTRY_IMAGE:latest"
+    
+    - echo "✅ Authentification configurée"
+    
+    - echo "🔨 Lancement du build..."
+    - |
+      /kaniko/executor \
+        --context "${CI_PROJECT_DIR}" \
+        --dockerfile "${CI_PROJECT_DIR}/Dockerfile" \
+        --destination "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}" \
+        --destination "${CI_REGISTRY_IMAGE}:latest" \
+        --cache=true \
+        --verbosity=info
+    
+    - echo "✅ Build terminé"
+  
   needs: ["package"]
   rules:
     - if: $CI_COMMIT_BRANCH
+
 
 
 ############################
