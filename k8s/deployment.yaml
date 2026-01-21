@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: article-service
-        image: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}
+        image: registry.gitlab.com/b-s-m/article-service:latest
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
