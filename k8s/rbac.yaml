@@ -26,7 +26,7 @@ rules:
     verbs: ["get", "list"]
 
 ---
-# RoleBinding pour production
+# RoleBinding pour production avec GitLab Agent
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -37,7 +37,9 @@ roleRef:
   kind: Role
   name: article-service-deployer
 subjects:
+  # NOTE : Remplacer 'gitlab-agent' par le nom réel du service account de votre agent
+  # et 'gitlab-agent' par le namespace où l'agent est installé
   - kind: ServiceAccount
-    name: gitlab-runner
-    namespace: gitlab-runner
+    name: gitlab-agent
+    namespace: gitlab-agent
 
