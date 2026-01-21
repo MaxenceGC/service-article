@@ -1,10 +1,13 @@
 ---
-# Role pour les permissions de déploiement en namespace production
+# Script pour créer dynamiquement les RBAC pour les namespaces de branche
+# Ce script est appelé dans le job deploy:branch
+
+# Role pour les permissions de déploiement en namespace dynamique
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: article-service-deployer
-  namespace: production
+  namespace: NAMESPACE_PLACEHOLDER
 rules:
   - apiGroups: [""]
     resources: ["secrets", "configmaps"]
@@ -26,12 +29,12 @@ rules:
     verbs: ["get", "list"]
 
 ---
-# RoleBinding pour production
+# RoleBinding pour namespace dynamique
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: article-service-deployer-binding
-  namespace: production
+  namespace: NAMESPACE_PLACEHOLDER
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
