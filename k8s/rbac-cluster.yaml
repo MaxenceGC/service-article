@@ -1,14 +1,14 @@
 ---
 # ======================================
-# CLUSTER-LEVEL PERMISSIONS for GitLab Agent
-# Ces permissions permettent à l'agent GitLab de gérer les namespaces et les RBAC
+# CLUSTER-LEVEL PERMISSIONS for gitlab-runner
+# Ces permissions permettent au runner GitLab de gérer les namespaces et les RBAC
 # ======================================
 
 # ClusterRole pour la gestion des namespaces et RBAC
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: gitlab-agent-deployer
+  name: gitlab-runner-deployer
 rules:
   # Permissions pour les namespaces
   - apiGroups: [""]
@@ -20,35 +20,18 @@ rules:
     resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
     verbs: ["get", "list", "create", "patch", "update", "watch"]
 
-  # Permissions pour les deployments et ressources d'application
-  - apiGroups: ["apps"]
-    resources: ["deployments", "services", "configmaps"]
-    verbs: ["get", "list", "create", "patch", "update", "watch", "delete"]
-
-  # Permissions pour les secrets
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["get", "list", "create", "patch", "update", "delete"]
-
-  # Permissions pour les ingress
-  - apiGroups: ["networking.k8s.io"]
-    resources: ["ingresses"]
-    verbs: ["get", "list", "create", "patch", "update", "delete"]
-
 ---
-# ClusterRoleBinding pour accorder les permissions cluster à l'agent GitLab
+# ClusterRoleBinding pour accorder les permissions cluster au runner GitLab
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: gitlab-agent-deployer-binding
+  name: gitlab-runner-deployer-binding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: gitlab-agent-deployer
+  name: gitlab-runner-deployer
 subjects:
-  # NOTE : Remplacer 'gitlab-agent' par le nom réel du service account de votre agent
-  # et 'gitlab-agent' par le namespace où l'agent est installé
   - kind: ServiceAccount
-    name: gitlab-agent
-    namespace: gitlab-agent
+    name: gitlab-runner
+    namespace: gitlab-runner
 
