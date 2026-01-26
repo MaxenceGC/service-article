@@ -2,22 +2,42 @@
 
 ## Déploiement en Production
 
-### Variables GitLab CI/CD requises
+### Architecture
 
-Configurer dans **Settings > CI/CD > Variables**:
+- **GitLab Runner**: Build Docker (pas de droits Kubernetes)
+- **GitLab Agent**: Déploiement Kubernetes via GitOps (Kustomize)
+- **Namespace production**: Ressources gérées manuellement au setup
 
-```
-QUARKUS_DATASOURCE_JDBC_URL = jdbc:postgresql://postgresql-service:5432/article_db
-QUARKUS_DATASOURCE_USERNAME = article_user
-QUARKUS_DATASOURCE_PASSWORD = your_secure_password
-```
+### Setup Initial (UNE SEULE FOIS)
+
+Voir `SETUP_INITIAL.md` pour créer les ressources Kubernetes initiales.
 
 ### Pipeline CI/CD
 
-- **test** : Tests unitaires et d'intégration
-- **build** : Construction JAR Quarkus
-- **docker** : Build et push image Docker
-- **deploy** : Déploiement en production (branche main)
+```
+Push code
+    ↓
+run tests (unitaires + intégration)
+    ↓
+run build (JAR)
+    ↓
+run docker (build + push image)
+    ↓
+run deploy (simple log - GitLab Agent gère le reste)
+    ↓
+GitLab Agent synchro les manifests Kubernetes
+    ↓
+Deployment article-service mis à jour automatiquement
+```
+
+### Mises à jour
+
+Après le setup initial:
+1. Poussez du code sur `main`
+2. Le pipeline build et push la nouvelle image Docker
+3. Le GitLab Agent détecte le changement de `k8s/kustomization.yaml`
+4. Applique automatiquement les manifests Kubernetes
+5. Kubernetes met à jour le Deployment avec la nouvelle image
 
 ## Endpoints
 

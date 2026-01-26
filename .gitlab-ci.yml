@@ -119,64 +119,32 @@ build_image:
 
 
 
+
 ############################
 # Déploiement production
 ############################
 deploy:production:
   stage: deploy
-  image:
-    name: bitnami/kubectl:latest
-    entrypoint: [""]
-  tags:
-    - kubernetes
-  needs:
-    - job: build_image
-      artifacts: false
-  variables:
-    NAMESPACE: production
+  image: alpine:latest
   script:
-    - echo "Deploying to namespace $NAMESPACE..."
-    - kubectl create secret docker-registry registry-credentials --docker-server=$CI_REGISTRY --docker-username=$CI_REGISTRY_USER --docker-password=$CI_REGISTRY_PASSWORD --namespace=$NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
-    - kubectl create secret generic article-service-secrets --from-literal=db.username=$QUARKUS_DATASOURCE_USERNAME --from-literal=db.password=$QUARKUS_DATASOURCE_PASSWORD --namespace=$NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
-    - kubectl create configmap article-service-config --from-literal=datasource.jdbc.url=$QUARKUS_DATASOURCE_JDBC_URL --namespace=$NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
-    - kubectl apply -f k8s/rbac-namespace.yaml -n $NAMESPACE
-    - kubectl set image deployment/article-service article-service=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA -n $NAMESPACE --record || kubectl apply -f k8s/deployment.yaml -n $NAMESPACE
-    - kubectl apply -f k8s/service.yaml -n $NAMESPACE
-    - kubectl apply -f k8s/ingress.yaml -n $NAMESPACE
-    - kubectl rollout status deployment/article-service -n $NAMESPACE --timeout=10m
+    - echo "Image Docker pushée: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - echo "GitLab Agent mettra à jour les manifests Kubernetes"
   environment:
     name: production
     kubernetes:
       namespace: production
-    url: https://satisfactorysquad.freeboxos.fr/article-service
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
 
 deploy:branch:
   stage: deploy
-  image:
-    name: bitnami/kubectl:latest
-    entrypoint: [""]
-  tags:
-    - kubernetes
-  needs:
-    - job: build_image
-      artifacts: false
+  image: alpine:latest
   script:
-    - export NAMESPACE=$CI_COMMIT_REF_SLUG
-    - echo "Deploying to namespace $NAMESPACE..."
-    - kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
-    - kubectl create secret docker-registry registry-credentials --docker-server=$CI_REGISTRY --docker-username=$CI_REGISTRY_USER --docker-password=$CI_REGISTRY_PASSWORD --namespace=$NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
-    - kubectl create secret generic article-service-secrets --from-literal=db.username=$QUARKUS_DATASOURCE_USERNAME --from-literal=db.password=$QUARKUS_DATASOURCE_PASSWORD --namespace=$NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
-    - kubectl create configmap article-service-config --from-literal=datasource.jdbc.url=$QUARKUS_DATASOURCE_JDBC_URL --namespace=$NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
-    - kubectl set image deployment/article-service article-service=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA -n $NAMESPACE --record || kubectl apply -f k8s/deployment.yaml -n $NAMESPACE
-    - kubectl apply -f k8s/service.yaml -n $NAMESPACE
-    - kubectl apply -f k8s/ingress.yaml -n $NAMESPACE
-    - kubectl rollout status deployment/article-service -n $NAMESPACE --timeout=10m
+    - echo "Image Docker pushée: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - echo "GitLab Agent mettra à jour les manifests Kubernetes"
   environment:
     name: "$CI_COMMIT_REF_SLUG"
     kubernetes:
       namespace: "$CI_COMMIT_REF_SLUG"
-    url: https://satisfactorysquad.freeboxos.fr/$CI_COMMIT_REF_SLUG/article-service
   rules:
     - if: $CI_COMMIT_BRANCH != "main"

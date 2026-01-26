@@ -7,3 +7,10 @@ ci_access:
           namespace: production
         - name: "*"
           namespace: ${CI_COMMIT_REF_SLUG}
+
+gitops:
+  manifest_projects:
+  - id: b-s-m/article-service
+    paths:
+    - glob: 'k8s/kustomization.yaml'
+    reconcile_interval: 15s
