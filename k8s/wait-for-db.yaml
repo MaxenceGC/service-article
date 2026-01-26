@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: wait-for-postgresql
+  namespace: production
+spec:
+  backoffLimit: 10
+  template:
+    spec:
+      serviceAccountName: article-service
+      containers:
+      - name: wait-for-db
+        image: postgres:15-alpine
+        command:
+          - /bin/sh
+          - -c
+          - |
+            echo "Attente de la disponibilité de PostgreSQL..."
+            until pg_isready -h postgresql-service -p 5432; do
+              echo "PostgreSQL indisponible - attente..."
+              sleep 5
+            done
+            echo "PostgreSQL est disponible!"
+      restartPolicy: Never

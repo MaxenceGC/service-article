@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: article-service-config
+  namespace: production
+data:
+  # URL de la base de données PostgreSQL
+  # Format: jdbc:postgresql://[HOST]:[PORT]/[DATABASE]
+  # Remplacez par votre URL réelle
+  datasource.jdbc.url: "jdbc:postgresql://postgresql-service:5432/article_db"

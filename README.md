@@ -1,5 +1,24 @@
 ﻿
 
+## Déploiement en Production
+
+### Variables GitLab CI/CD requises
+
+Configurer dans **Settings > CI/CD > Variables**:
+
+```
+QUARKUS_DATASOURCE_JDBC_URL = jdbc:postgresql://postgresql-service:5432/article_db
+QUARKUS_DATASOURCE_USERNAME = article_user
+QUARKUS_DATASOURCE_PASSWORD = your_secure_password
+```
+
+### Pipeline CI/CD
+
+- **test** : Tests unitaires et d'intégration
+- **build** : Construction JAR Quarkus
+- **docker** : Build et push image Docker
+- **deploy** : Déploiement en production (branche main)
+
 ## Endpoints
 
 Toutes les routes consomment et produisent du JSON (`Content-Type: application/json`).
