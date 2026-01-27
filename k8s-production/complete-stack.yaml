@@ -1,0 +1,371 @@
+# Architecture Multi-Service dans le Namespace Production
+# ========================================================
+#
+# Namespace: production
+#   ├── article-service
+#   │   ├── Pod: article-service-app (Quarkus)
+#   │   ├── Pod: postgresql-article (BD)
+#   │   └── PVC: postgresql-article-data
+#   │
+#   ├── user-service
+#   │   ├── Pod: user-service-app
+#   │   ├── Pod: postgresql-user (BD)
+#   │   └── PVC: postgresql-user-data
+#   │
+#   ├── Ingress (nginx)
+#   └── ConfigMaps + Secrets pour chaque service
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+
+---
+# ========== ARTICLE-SERVICE ==========
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgresql-article-data
+  namespace: production
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql-article
+  namespace: production
+spec:
+  selector:
+    app: postgresql-article
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgresql-article
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgresql-article
+  template:
+    metadata:
+      labels:
+        app: postgresql-article
+    spec:
+      containers:
+      - name: postgresql
+        image: postgres:16-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: article_db
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: article-db-secrets
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: article-db-secrets
+              key: password
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+          subPath: postgres
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: postgresql-article-data
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: article-db-secrets
+  namespace: production
+type: Opaque
+stringData:
+  username: article_user
+  password: article_password_123
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: article-service-config
+  namespace: production
+data:
+  QUARKUS_DATASOURCE_JDBC_URL: "jdbc:postgresql://postgresql-article:5432/article_db"
+  QUARKUS_DATASOURCE_USERNAME: "article_user"
+  QUARKUS_DATASOURCE_PASSWORD: "article_password_123"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: article-service
+  namespace: production
+spec:
+  type: ClusterIP
+  selector:
+    app: article-service
+  ports:
+    - port: 80
+      targetPort: 8080
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: article-service
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: article-service
+  template:
+    metadata:
+      labels:
+        app: article-service
+    spec:
+      containers:
+      - name: article-service
+        image: registry.gitlab.com/b-s-m/article-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        envFrom:
+        - configMapRef:
+            name: article-service-config
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /q/health/live
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /q/health/ready
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 5
+
+---
+# ========== USER-SERVICE ==========
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgresql-user-data
+  namespace: production
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql-user
+  namespace: production
+spec:
+  selector:
+    app: postgresql-user
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgresql-user
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgresql-user
+  template:
+    metadata:
+      labels:
+        app: postgresql-user
+    spec:
+      containers:
+      - name: postgresql
+        image: postgres:16-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: user_db
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: user-db-secrets
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: user-db-secrets
+              key: password
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+          subPath: postgres
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: postgresql-user-data
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: user-db-secrets
+  namespace: production
+type: Opaque
+stringData:
+  username: user_user
+  password: user_password_123
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-service-config
+  namespace: production
+data:
+  QUARKUS_DATASOURCE_JDBC_URL: "jdbc:postgresql://postgresql-user:5432/user_db"
+  QUARKUS_DATASOURCE_USERNAME: "user_user"
+  QUARKUS_DATASOURCE_PASSWORD: "user_password_123"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: production
+spec:
+  type: ClusterIP
+  selector:
+    app: user-service
+  ports:
+    - port: 80
+      targetPort: 8080
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+      - name: user-service
+        image: registry.gitlab.com/b-s-m/user-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        envFrom:
+        - configMapRef:
+            name: user-service-config
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /q/health/live
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /q/health/ready
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 5
+
+---
+# ========== INGRESS ==========
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: production-ingress
+  namespace: production
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: satisfactorysquad.freeboxos.fr
+      http:
+        paths:
+          - path: /article-service(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: article-service
+                port:
+                  number: 80
+          - path: /user-service(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 80
