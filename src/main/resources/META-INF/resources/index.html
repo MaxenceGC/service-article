@@ -216,7 +216,8 @@
     }
 
     async function api(path, opts={}){
-        const url = new URL(path, base() + '/').toString();
+        const fullPath = '/article-service' + path;
+        const url = new URL(fullPath, base() + '/').toString();
         const headers = { ...(opts.headers||{}) };
         if(opts.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
         try{
