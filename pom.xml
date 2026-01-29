@@ -54,6 +54,7 @@
             <artifactId>quarkus-rest-jackson</artifactId>
         </dependency>
 
+
         <!-- Persistence -->
         <dependency>
             <groupId>io.quarkus</groupId>
