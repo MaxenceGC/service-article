@@ -9,7 +9,6 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  MAVEN_OPTS: "-B -Dmaven.repo.local=.m2/repository"
 
 jobs:
   # ============================
@@ -29,9 +28,7 @@ jobs:
           cache: maven
 
       - name: Run unit tests
-        run: |
-          chmod +x ./mvnw
-          ./mvnw $MAVEN_OPTS -DskipTests=false -DskipITs=true verify
+        run: mvn -B -DskipTests=false -DskipITs=true verify
 
       - name: Upload test reports
         if: always()
@@ -79,9 +76,7 @@ jobs:
           QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://localhost:5432/service_article
           QUARKUS_DATASOURCE_USERNAME: postgres
           QUARKUS_DATASOURCE_PASSWORD: postgres
-        run: |
-          chmod +x ./mvnw
-          ./mvnw $MAVEN_OPTS -DskipTests=true -DskipITs=false verify
+        run: mvn -B -DskipTests=true -DskipITs=false verify
 
       - name: Upload test reports
         if: always()
@@ -109,9 +104,7 @@ jobs:
           cache: maven
 
       - name: Package application
-        run: |
-          chmod +x ./mvnw
-          ./mvnw $MAVEN_OPTS -DskipTests package
+        run: mvn -B -DskipTests package
 
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
